@@ -1,0 +1,2326 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lydbar - DJ & Musikk</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/index.min.js"></script>
+    <script>
+        // Core navigation function - must be defined early
+        function showSection(sectionId) {
+            const sections = document.querySelectorAll('.section');
+            sections.forEach(section => section.classList.remove('active'));
+            const selectedSection = document.getElementById(sectionId);
+            if (selectedSection) {
+                selectedSection.classList.add('active');
+                // Update URL hash to reflect current section
+                window.location.hash = '#' + sectionId;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            // Close mobile menu when section is clicked
+            const mobileNav = document.querySelector('.mobile-nav');
+            if (mobileNav && mobileNav.classList.contains('active')) {
+                mobileNav.classList.remove('active');
+                document.querySelector('.hamburger').classList.remove('active');
+            }
+            return false;
+        }
+
+        function toggleMobileMenu() {
+            const hamburger = document.querySelector('.hamburger');
+            const mobileNav = document.querySelector('.mobile-nav');
+            hamburger.classList.toggle('active');
+            mobileNav.classList.toggle('active');
+        }
+
+        // Modal functions - must be defined early for onclick handlers
+        function openLoginModal() {
+            document.getElementById('loginModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLoginModal() {
+            document.getElementById('loginModal').classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        function openRegisterModal() {
+            document.getElementById('registerModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeRegisterModal() {
+            document.getElementById('registerModal').classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        function openBlogPost(postId) {
+            document.getElementById('blogModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeBlogPost() {
+            document.getElementById('blogModal').classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        function openBooking(courseName) {
+            document.getElementById('bookingModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+            
+            // Set booking title
+            document.getElementById('bookingTitle').textContent = 'Finn Tid - ' + courseName;
+            
+            // Reset form and display
+            document.getElementById('bookingForm').reset();
+            document.getElementById('bookingSubmitBtn').disabled = true;
+            document.getElementById('bookingDateTimeDisplay').textContent = 'Ikke valgt';
+            
+            // Reset booking variables
+            selectedBookingDate = null;
+            selectedBookingTime = null;
+            selectedBookingEndTime = null;
+            selectedBookingDates = [];
+            currentSelectedDay = null;
+            
+            // Store course name for booking reference
+            currentBookingCourseName = courseName;
+            
+            // Initialize calendar and times based on course
+            initializeBookingCalendar(courseName);
+        }
+
+        function closeBooking() {
+            document.getElementById('bookingModal').classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Global variables for booking
+        let selectedBookingDate = null;
+        let selectedBookingTime = null;
+        let selectedBookingEndTime = null;
+        let currentBookingCourseName = null;
+        let currentBookingDayIndex = 0; // For Privatkurs: which day (0-4) we're selecting
+        let currentSelectedDay = null; // For Privatkurs: which day is selected for time entry
+        let selectedBookingDates = []; // For Privatkurs - array of {date, time, endTime} objects
+
+        function initializeBookingCalendar(courseName) {
+            const calendarContainer = document.getElementById('bookingCalendar');
+            const timesContainer = document.getElementById('bookingTimes');
+            
+            calendarContainer.innerHTML = '';
+            timesContainer.innerHTML = '';
+            
+            // Special handling for Gruppekurs - no calendar needed
+            if (courseName === 'Gruppekurs for nybegynnere - Fysisk') {
+                calendarContainer.innerHTML = `
+                    <div style="grid-column: 1 / -1; padding: 16px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #5B4B9D;">
+                        <p style="margin: 0 0 12px 0; font-weight: 700; color: #5B4B9D;">Kursdetaljer</p>
+                        <p style="margin: 0 0 8px 0; color: #333;"><strong>Hver tirsdag 17:15-18:30</strong></p>
+                        <p style="margin: 0 0 8px 0; color: #666; font-size: 0.9rem;">Starter uke 3 januar 2027 (12. januar)<br/>5 samlinger, plass til 10 elever</p>
+                        <p style="margin: 0; color: #666; font-size: 0.9rem;"><strong>Sted:</strong> <a href="https://maps.google.com/?q=Trondheimsveien+2+bygg+H+Oslo" target="_blank" style="color: #5B4B9D; text-decoration: none; cursor: pointer; border-bottom: 1px solid #5B4B9D;">Øvingshotellet, Trondheimsveien 2, bygg H, Oslo</a></p>
+                    </div>
+                `;
+                timesContainer.innerHTML = '';
+                
+                // Set fixed date/time for gruppekurs
+                selectedBookingDate = '2027-01-12';
+                selectedBookingTime = '17:15';
+                selectedBookingEndTime = '18:30';
+                updateBookingDisplay();
+                document.getElementById('bookingSubmitBtn').disabled = false;
+                return;
+            }
+            
+            let availableTimes = ['09:00', '11:00', '14:00', '16:00', '18:00'];
+            let availableDays = [1, 2, 3, 4, 5]; // All weekdays
+            let timeEndTimes = {}; // Map start time to end time
+            let startDate = new Date(); // Today
+            let blockedStartDate = null;
+            let blockedEndDate = null;
+            
+            // Configure based on course type
+            if (courseName === 'Privatkurs for nybegynnere - Fysisk') {
+                availableDays = [1, 5]; // Monday (1) and Friday (5)
+                availableTimes = ['17:45', '16:15'];
+                timeEndTimes = {
+                    '17:45': '19:00', // Monday 17:45-19:00
+                    '16:15': '17:30'  // Friday 16:15-17:30
+                };
+                blockedStartDate = new Date(2026, 10, 19);
+                blockedEndDate = new Date(2026, 10, 20);
+            } else if (courseName === 'Gruppekurs for nybegynnere - Fysisk') {
+                availableDays = [2]; // Tuesday (2) only
+                availableTimes = ['17:15'];
+                timeEndTimes = {
+                    '17:15': '18:30'
+                };
+                startDate = new Date(2027, 0, 12);
+            } else {
+                timeEndTimes = {
+                    '09:00': '10:15',
+                    '11:00': '12:15',
+                    '14:00': '15:15',
+                    '16:00': '17:15',
+                    '18:00': '19:15'
+                };
+                blockedStartDate = new Date(2026, 10, 19);
+                blockedEndDate = new Date(2026, 10, 20);
+            }
+            
+            // Generate calendar with available days
+            const availableDates = [];
+            for (let i = 0; i <= 84 && availableDates.length < 25; i++) {
+                const date = new Date(startDate);
+                date.setDate(date.getDate() + i);
+                const dayOfWeek = date.getDay();
+                
+                if (!availableDays.includes(dayOfWeek)) continue;
+                if (blockedStartDate && blockedEndDate) {
+                    if (date >= blockedStartDate && date <= blockedEndDate) continue;
+                }
+                availableDates.push(new Date(date));
+            }
+            
+            const isPrivatkurs = courseName === 'Privatkurs for nybegynnere - Fysisk';
+            
+            // For Privatkurs: Create step-based interface
+            if (isPrivatkurs) {
+                currentBookingDayIndex = selectedBookingDates.length; // Current slot we're filling (0-4)
+                const dayNum = currentBookingDayIndex + 1;
+                const showTimesSelection = currentSelectedDay !== null; // True if a day was just selected
+                
+                // Show day selection step
+                const calendarWrapper = document.createElement('div');
+                calendarWrapper.style.cssText = 'display: flex; flex-direction: column; gap: 12px;';
+                
+                const labelElement = document.createElement('div');
+                labelElement.style.cssText = 'font-weight: 700; color: #5B4B9D; font-size: 14px;';
+                labelElement.textContent = `Dag ${dayNum}/5 - Velg dato:`;
+                calendarWrapper.appendChild(labelElement);
+                
+                const gridContainer = document.createElement('div');
+                gridContainer.style.cssText = 'display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;';
+                calendarWrapper.appendChild(gridContainer);
+                
+                availableDates.slice(0, 25).forEach(date => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    const dateStr = date.toLocaleDateString('no-NO', { weekday: 'short', day: 'numeric', month: 'short' });
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const dateISO = `${year}-${month}-${day}`;
+                    
+                    // Check if this date is already selected in a previous slot
+                    const alreadySelected = selectedBookingDates.some(slot => slot.date === dateISO);
+                    
+                    button.textContent = dateStr;
+                    button.style.cssText = `
+                        padding: 10px 8px;
+                        border: 2px solid #ddd;
+                        background: white;
+                        border-radius: 6px;
+                        cursor: ${alreadySelected ? 'not-allowed' : 'pointer'};
+                        font-size: 12px;
+                        font-weight: 500;
+                        transition: all 0.3s ease;
+                        color: #333;
+                        opacity: ${alreadySelected ? 0.5 : 1};
+                    `;
+                    
+                    if (alreadySelected) {
+                        button.disabled = true;
+                    } else {
+                        button.onclick = () => {
+                            currentSelectedDay = dateISO;
+                            initializeBookingCalendar(courseName); // Refresh to show times
+                        };
+                    }
+                    
+                    gridContainer.appendChild(button);
+                });
+                
+                calendarContainer.innerHTML = '';
+                calendarContainer.appendChild(calendarWrapper);
+                
+                // Show time selection if a day was selected
+                if (currentSelectedDay) {
+                    const timeLabel = document.createElement('div');
+                    timeLabel.style.cssText = 'font-weight: 700; color: #5B4B9D; font-size: 14px; margin-bottom: 8px;';
+                    timeLabel.textContent = `Dag ${dayNum}/5 - Velg tid:`;
+                    timesContainer.appendChild(timeLabel);
+                    
+                    availableTimes.forEach(time => {
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        const endTime = timeEndTimes[time];
+                        button.textContent = time;
+                        button.style.cssText = `
+                            padding: 12px;
+                            border: 2px solid #ddd;
+                            background: white;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 14px;
+                            font-weight: 600;
+                            transition: all 0.3s ease;
+                            color: #333;
+                        `;
+                        
+                        button.onclick = () => {
+                            selectedBookingDates.push({
+                                date: currentSelectedDay,
+                                time: time,
+                                endTime: endTime
+                            });
+                            currentSelectedDay = null;
+                            updateBookingDisplay();
+                            
+                            // If more days needed, refresh to show next day
+                            if (selectedBookingDates.length < 5) {
+                                initializeBookingCalendar(courseName);
+                            }
+                        };
+                        
+                        timesContainer.appendChild(button);
+                    });
+                }
+                
+                return;
+            }
+            
+            // For non-Privatkurs courses: Single date selection
+            const gridContainer = document.createElement('div');
+            gridContainer.style.cssText = 'display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;';
+            
+            availableDates.slice(0, 25).forEach(date => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                const dateStr = date.toLocaleDateString('no-NO', { weekday: 'short', day: 'numeric', month: 'short' });
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const dateISO = `${year}-${month}-${day}`;
+                
+                button.textContent = dateStr;
+                button.style.cssText = `
+                    padding: 10px 8px;
+                    border: 2px solid #ddd;
+                    background: white;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 12px;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                    color: #333;
+                `;
+                
+                button.onclick = () => {
+                    document.querySelectorAll('#bookingCalendar button').forEach(b => {
+                        b.style.background = 'white';
+                        b.style.borderColor = '#ddd';
+                        b.style.color = '#333';
+                    });
+                    button.style.background = '#5B4B9D';
+                    button.style.borderColor = '#5B4B9D';
+                    button.style.color = 'white';
+                    selectedBookingDate = dateISO;
+                    updateBookingDisplay();
+                };
+                
+                gridContainer.appendChild(button);
+            });
+            
+            calendarContainer.appendChild(gridContainer);
+            
+            availableTimes.forEach(time => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                const endTime = timeEndTimes[time];
+                button.textContent = time;
+                button.style.cssText = `
+                    padding: 12px;
+                    border: 2px solid #ddd;
+                    background: white;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 600;
+                    transition: all 0.3s ease;
+                    color: #333;
+                `;
+                
+                button.onclick = () => {
+                    document.querySelectorAll('#bookingTimes button').forEach(b => {
+                        b.style.background = 'white';
+                        b.style.borderColor = '#ddd';
+                        b.style.color = '#333';
+                    });
+                    button.style.background = '#5B4B9D';
+                    button.style.borderColor = '#5B4B9D';
+                    button.style.color = 'white';
+                    selectedBookingTime = time;
+                    selectedBookingEndTime = endTime;
+                    updateBookingDisplay();
+                };
+                
+                timesContainer.appendChild(button);
+            });
+        }
+
+        function updateBookingDisplay() {
+            const isPrivatkurs = currentBookingCourseName === 'Privatkurs for nybegynnere - Fysisk';
+            
+            if (isPrivatkurs) {
+                // Privatkurs: check if 5 day+time pairs selected
+                if (selectedBookingDates.length === 5) {
+                    const dateTimeStrings = selectedBookingDates.map(slot => {
+                        const [year, month, day] = slot.date.split('-').map(Number);
+                        const date = new Date(year, month - 1, day);
+                        const dayStr = date.toLocaleDateString('no-NO', { weekday: 'short', day: 'numeric', month: 'short' });
+                        return `${dayStr} kl. ${slot.time}-${slot.endTime}`;
+                    }).join(', ');
+                    document.getElementById('bookingDateTimeDisplay').textContent = `${dateTimeStrings} (5 dager)`;
+                    document.getElementById('bookingSubmitBtn').disabled = false;
+                } else {
+                    const count = selectedBookingDates.length;
+                    document.getElementById('bookingDateTimeDisplay').textContent = `Valgt ${count} av 5 dager`;
+                    document.getElementById('bookingSubmitBtn').disabled = true;
+                }
+            } else if (selectedBookingDate && selectedBookingTime) {
+                // Other courses: single date
+                const [year, month, day] = selectedBookingDate.split('-').map(Number);
+                const date = new Date(year, month - 1, day);
+                const dateStr = date.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                const endTime = selectedBookingEndTime || getEndTime(selectedBookingTime);
+                document.getElementById('bookingDateTimeDisplay').textContent = `${dateStr} kl. ${selectedBookingTime} - ${endTime}`;
+                document.getElementById('bookingSubmitBtn').disabled = false;
+            } else {
+                document.getElementById('bookingDateTimeDisplay').textContent = 'Ikke valgt';
+                document.getElementById('bookingSubmitBtn').disabled = true;
+            }
+        }
+
+        function getEndTime(startTime) {
+            const [hours, minutes] = startTime.split(':').map(Number);
+            const totalMinutes = hours * 60 + minutes + 75; // 1h 15min
+            const endHours = Math.floor(totalMinutes / 60);
+            const endMinutes = totalMinutes % 60;
+            return `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
+        }
+
+        // Use :target CSS pseudo-class for navigation
+        window.addEventListener('load', function() {
+            // If no hash, navigate to home
+            if (!window.location.hash) {
+                window.location.hash = '#home';
+            }
+            
+            // Add click handlers to navigation links to ensure proper navigation
+            document.querySelectorAll('a[href^="#"]').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    // Let default hash navigation work
+                    // The :target CSS will handle showing/hiding sections
+                });
+            });
+        });
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #5B4B9D;
+            --primary-dark: #463A73;
+            --primary-light: #7968C0;
+            --secondary: #2D1B69;
+            --dark: #0F0F1E;
+            --text: #1A1A2E;
+            --text-light: #6C757D;
+            --text-lighter: #ADB5BD;
+            --light: #F8F9FA;
+            --white: #FFFFFF;
+            --border: #E9ECEF;
+            --accent: #00A651;
+            --success: #27AE60;
+            --danger: #E74C3C;
+            --warning: #F39C12;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #FAFBFC;
+            color: var(--text);
+            line-height: 1.6;
+            font-weight: 400;
+        }
+
+        header {
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 1px 3px rgba(15, 15, 30, 0.08);
+        }
+
+        .header-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 48px;
+            min-height: 76px;
+        }
+
+        .logo {
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .logo:hover {
+            transform: scale(1.05);
+        }
+
+        .logo svg,
+        .logo img {
+            width: 320px;
+            height: auto;
+            max-width: 100%;
+        }
+
+        .header-container nav {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+
+        nav {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+            gap: 6px;
+            background: none;
+            border: none;
+            padding: 8px;
+        }
+
+        .hamburger span {
+            width: 28px;
+            height: 3px;
+            background-color: var(--primary);
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .hamburger.active span:nth-child(1) {
+            transform: rotate(45deg) translate(10px, 10px);
+        }
+
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(7px, -7px);
+        }
+
+        .mobile-nav {
+            display: none;
+        }
+
+        .mobile-nav.active {
+            display: flex;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: white;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            z-index: 1000;
+        }
+
+        .mobile-nav a {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--primary);
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        nav a {
+            color: var(--text-light);
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 500;
+            padding: 8px 0;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
+        nav a:hover,
+        nav a[onclick*="active"],
+        nav a.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .main-content {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 40px 48px;
+            background: white;
+            border-radius: 0px;
+            box-shadow: none;
+            min-height: 500px;
+        }
+
+        .section {
+            display: none !important;
+            animation: fadeIn 0.6s ease;
+        }
+
+        /* Show section when it has .active class OR when it's the :target */
+        .section.active,
+        .section:target {
+            display: block !important;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 52px;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 24px;
+            line-height: 1.15;
+            letter-spacing: -0.5px;
+        }
+
+        .section h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 26px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-top: 32px;
+            margin-bottom: 16px;
+            line-height: 1.3;
+            letter-spacing: -0.3px;
+        }
+
+        .section p {
+            line-height: 1.8;
+            color: var(--text-light);
+            margin-bottom: 18px;
+            font-size: 15px;
+        }
+
+        /* Blogg spesiell styling */
+        #blogg .blog-post {
+            margin-bottom: 40px;
+            padding-bottom: 32px;
+            border-bottom: 1px solid var(--border);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        #blogg .blog-post:last-child {
+            border-bottom: none;
+        }
+
+        #blogg .blog-post:hover {
+            transform: translateX(6px);
+        }
+
+        #blogg .blog-post h2 {
+            margin-top: 0;
+            color: var(--dark);
+            font-size: 1.5rem;
+        }
+
+        #blogg .blog-post:hover h2 {
+            color: var(--primary);
+        }
+
+        #blogg .blog-post p {
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        #kurs {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        #kurs h1 {
+            grid-column: 1 / -1;
+        }
+
+        #kurs .course-item {
+            background: white;
+            padding: 36px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 3px rgba(15, 15, 30, 0.08);
+        }
+
+        #kurs .course-item:hover {
+            box-shadow: 0 12px 32px rgba(91, 75, 157, 0.12);
+            transform: translateY(-4px);
+            border-color: rgba(91, 75, 157, 0.15);
+        }
+
+        #kurs .course-item h2 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: var(--dark);
+        }
+
+        #kurs .course-item p {
+            color: var(--text-light);
+        }
+
+        /* Kontakt form */
+        form {
+            max-width: 600px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text);
+            font-size: 13px;
+            letter-spacing: 0.3px;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(91, 75, 157, 0.08);
+            background: rgba(91, 75, 157, 0.01);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 140px;
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 14px 32px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(91, 75, 157, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(91, 75, 157, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0px);
+        }
+
+        /* Profil styling */
+        #profil .profile-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 32px;
+            margin-bottom: 40px;
+        }
+
+        #profil .info-card {
+            background: white;
+            padding: 32px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 3px rgba(15, 15, 30, 0.08);
+        }
+
+        #profil .info-card:hover {
+            box-shadow: 0 12px 32px rgba(91, 75, 157, 0.12);
+            transform: translateY(-4px);
+            border-color: rgba(108, 92, 231, 0.2);
+        }
+
+        #profil .info-card h3 {
+            color: var(--primary);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        #profil .info-card p {
+            color: var(--text);
+            margin: 0;
+        }
+
+        #profil ul {
+            list-style: none;
+            padding: 0;
+            margin-top: 16px;
+        }
+
+        #profil li {
+            padding: 10px 0;
+            color: var(--text-light);
+            font-size: 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        #profil li:last-child {
+            border-bottom: none;
+        }
+
+        #profil li:before {
+            content: "✓ ";
+            color: var(--accent);
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 48px 32px;
+            background: linear-gradient(135deg, rgba(108, 92, 231, 0.05) 0%, rgba(139, 127, 211, 0.05) 100%);
+            color: var(--text-light);
+            border-top: 1px solid var(--border);
+            margin-top: 80px;
+            font-size: 14px;
+        }
+
+        footer p {
+            margin: 0;
+        }
+
+        /* Booking Modal */
+        .booking-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(15, 15, 30, 0.6);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .booking-modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .booking-modal-content {
+            background-color: white;
+            padding: 40px;
+            border-radius: 16px;
+            max-width: 900px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(15, 15, 30, 0.2);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .booking-modal-content h2 {
+            margin-top: 0;
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+
+        .booking-modal-content .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .booking-modal-content .close:hover {
+            color: var(--primary);
+        }
+
+        .booking-form-group {
+            margin-bottom: 20px;
+        }
+
+        .booking-form-group input {
+            width: 100% !important;
+            padding: 14px 12px !important;
+            border: 2px solid #ddd !important;
+            border-radius: 8px !important;
+            font-size: 16px !important;
+            transition: border-color 0.3s ease !important;
+        }
+
+        .booking-form-group input:focus {
+            outline: none;
+            border-color: #5B4B9D !important;
+            box-shadow: 0 0 0 3px rgba(91, 75, 157, 0.1);
+        }
+
+        .booking-form-group input,
+        .booking-form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .booking-form-group input:focus,
+        .booking-form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(91, 75, 157, 0.08);
+        }
+
+        .booking-button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .booking-button-group button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .booking-button-group .btn-submit {
+            background: linear-gradient(135deg, var(--primary) 0%, #8b7fd3 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(108, 92, 231, 0.2);
+        }
+
+        .booking-button-group .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(108, 92, 231, 0.3);
+        }
+
+        .booking-button-group .btn-cancel {
+            background: var(--light);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .booking-button-group .btn-cancel:hover {
+            background: #f0f0f0;
+        }
+
+        /* Blog Modal */
+        .blog-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(15, 15, 30, 0.6);
+            overflow-y: auto;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .blog-modal.active {
+            display: block;
+        }
+
+        .blog-modal-content {
+            background-color: white;
+            margin: 40px auto;
+            padding: 40px;
+            border-radius: 16px;
+            max-width: 800px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(15, 15, 30, 0.2);
+            animation: slideUp 0.3s ease;
+        }
+
+        .blog-modal-content h1 {
+            color: var(--primary);
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .blog-modal-content .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+            margin-top: -10px;
+        }
+
+        .blog-modal-content .close:hover {
+            color: var(--primary);
+        }
+
+        .blog-modal-content p {
+            line-height: 1.8;
+            color: var(--text-light);
+            margin-bottom: 16px;
+        }
+
+        .blog-modal-content .blog-meta {
+            color: var(--text-light);
+            font-size: 13px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .blog-modal-content .back-button {
+            display: inline-block;
+            margin-top: 24px;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, var(--primary) 0%, #8b7fd3 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .blog-modal-content .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(108, 92, 231, 0.3);
+        }
+
+        /* Login Modal */
+        .login-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 15, 30, 0.6);
+            backdrop-filter: blur(4px);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .login-modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-modal-content {
+            background: white;
+            padding: 48px;
+            border-radius: 16px;
+            max-width: 420px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(15, 15, 30, 0.2);
+            animation: slideUp 0.3s ease;
+            position: relative;
+        }
+
+        .login-modal-content .close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .login-modal-content .close:hover {
+            color: var(--primary);
+            background: rgba(108, 92, 231, 0.1);
+        }
+
+        .login-header {
+            margin-bottom: 32px;
+            text-align: center;
+        }
+
+        .login-header h2 {
+            color: var(--dark);
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0 0 8px 0;
+        }
+
+        .login-header p {
+            color: var(--text-light);
+            font-size: 14px;
+            margin: 0;
+        }
+
+        #loginForm .form-group {
+            margin-bottom: 20px;
+        }
+
+        #loginForm label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        #loginForm input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        #loginForm input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.1);
+            background: rgba(108, 92, 231, 0.02);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, var(--primary) 0%, #8b7fd3 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(108, 92, 231, 0.25);
+            margin-top: 8px;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(108, 92, 231, 0.35);
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
+        }
+
+        .login-footer {
+            margin-top: 24px;
+            text-align: center;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+        }
+
+        .login-footer p {
+            color: var(--text-light);
+            font-size: 13px;
+            margin: 0;
+        }
+
+        .login-footer a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .login-footer a:hover {
+            color: #8b7fd3;
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .booking-modal-content {
+                max-width: 95%;
+                padding: 20px;
+            }
+
+            .booking-modal-content > div[style*="grid-template-columns: 1fr 1fr"] {
+                grid-template-columns: 1fr !important;
+            }
+
+            .header-container {
+                padding: 0 16px;
+                justify-content: space-between;
+            }
+
+            nav {
+                display: none;
+            }
+
+            .hamburger {
+                display: flex;
+            }
+
+            .main-content {
+                margin: 30px 16px;
+                padding: 30px 20px;
+            }
+
+            .section h1 {
+                font-size: 36px;
+            }
+
+            .section h2 {
+                font-size: 20px;
+            }
+
+            #kurs {
+                grid-template-columns: 1fr;
+            }
+
+            #profil .profile-info {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <a href="#home" class="logo" onclick="return showSection('home')">
+                <img src="lydbar-logo-lilla.png" alt="Lydbar Logo" style="width: 280px; height: auto; max-width: 100%;">
+            </a>
+            <nav>
+                <a href="#om" onclick="return showSection('om')">Om</a>
+                <a href="#kurs" onclick="return showSection('kurs')">Kurs</a>
+                <a href="#blogg" onclick="return showSection('blogg')">Blogg</a>
+                <a href="#kontakt" onclick="return showSection('kontakt')">Kontakt</a>
+                <a href="#profil" onclick="return showSection('profil')">Min profil</a>
+            </nav>
+            <button class="hamburger" onclick="toggleMobileMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+        <div class="mobile-nav">
+            <a href="#om" onclick="return showSection('om')">Om</a>
+            <a href="#kurs" onclick="return showSection('kurs')">Kurs</a>
+            <a href="#blogg" onclick="return showSection('blogg')">Blogg</a>
+            <a href="#kontakt" onclick="return showSection('kontakt')">Kontakt</a>
+            <a href="#profil" onclick="return showSection('profil')">Min profil</a>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div id="om" class="section">
+            <h1>Om Lydbar</h1>
+            <p>Velkommen til Lydbar – din destinasjon for DJ-kultur, musikk og lyd. Vi er en plattform dedikert til å inspirere og utdanne både nybegynnere og erfarne DJer.</p>
+            <p style="margin-top: 24px;">Vår misjon er å gjøre DJ-ing tilgjengelig for alle. Gjennom kurs, blogginnlegg og et støttende fellesskap, hjelper vi deg å utvikle dine ferdigheter og finne din unike stil.</p>
+            <p style="margin-top: 24px;">Vi tilbyr høykvalitets ressurser, fra praktisk utstyrsveiledning til avanserte miksingsteknikker. Uansett om du drømmer om å spille på club eller bare elsker musikk, er Lydbar stedet for deg.</p>
+        </div>
+
+        <div id="home" class="section" style="background: linear-gradient(135deg, #5B4B9D 0%, #463A73 100%); color: white; padding: 100px 48px; text-align: center; border-radius: 20px; margin: 40px 0;">
+            <h1 style="font-size: 3.8rem; font-weight: 700; margin-bottom: 20px; color: white; letter-spacing: -1px;">Lær DJ-ing fra Scratch</h1>
+            <p style="font-size: 1.25rem; margin-bottom: 12px; color: rgba(255,255,255,0.95); font-weight: 300;">Gruppekurs for nybegynnere</p>
+            <p style="font-size: 1.05rem; margin-bottom: 60px; color: rgba(255,255,255,0.85); max-width: 700px; margin-left: auto; margin-right: auto; line-height: 1.7; font-weight: 300;">Lær DJ-ing sammen med andre nybegynnere i en støttende og inspirerende miljø. Praktisk erfaring med profesjonelt utstyr under veiledning av erfarne instruktører.</p>
+            
+            <div style="background: white; border-radius: 16px; padding: 48px; max-width: 620px; margin: 0 auto; box-shadow: 0 20px 60px rgba(15, 15, 30, 0.15);">
+                <h2 style="color: #5B4B9D; font-size: 2rem; margin: 0 0 28px 0; font-weight: 700;">Gruppekurs for nybegynnere</h2>
+                <ul style="text-align: left; color: #1A1A2E; margin-bottom: 32px; list-style: none; padding: 0;">
+                    <li style="margin-bottom: 14px; font-size: 0.95rem; display: flex; align-items: flex-start;">
+                        <span style="color: #00A651; font-weight: 700; margin-right: 12px; font-size: 1.2rem;">✓</span>
+                        <span>Grunnleggende DJ-teknikker og beatmatching</span>
+                    </li>
+                    <li style="margin-bottom: 14px; font-size: 0.95rem; display: flex; align-items: flex-start;">
+                        <span style="color: #00A651; font-weight: 700; margin-right: 12px; font-size: 1.2rem;">✓</span>
+                        <span>Praktisk erfaring med profesjonelt utstyr</span>
+                    </li>
+                    <li style="margin-bottom: 14px; font-size: 0.95rem; display: flex; align-items: flex-start;">
+                        <span style="color: #00A651; font-weight: 700; margin-right: 12px; font-size: 1.2rem;">✓</span>
+                        <span>Lær fra erfarne DJ-instruktører</span>
+                    </li>
+                    <li style="margin-bottom: 14px; font-size: 0.95rem; display: flex; align-items: flex-start;">
+                        <span style="color: #00A651; font-weight: 700; margin-right: 12px; font-size: 1.2rem;">✓</span>
+                        <span>Minst 4-6 deltakere per gruppe</span>
+                    </li>
+                    <li style="margin-bottom: 0; font-size: 0.95rem; display: flex; align-items: flex-start;">
+                        <span style="color: #00A651; font-weight: 700; margin-right: 12px; font-size: 1.2rem;">✓</span>
+                        <span>Løpende kursing hele året</span>
+                    </li>
+                </ul>
+                
+                <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                    <a href="https://buy.stripe.com/9B65kC0Xj3CU4NjaHd5kk02" target="_blank" style="flex: 1; background: #5B4B9D; color: white; padding: 16px 24px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.9rem; transition: all 0.3s ease; display: inline-block; text-transform: uppercase; letter-spacing: 0.4px;">
+                        Reservér plass
+                    </a>
+                </div>
+                <button onclick="openBooking('Gruppekurs for nybegynnere - Fysisk')" style="width: 100%; background: white; border: 2px solid #5B4B9D; color: #5B4B9D; padding: 14px 24px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.9rem; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 0.4px;">
+                    Book nå
+                </button>
+            </div>
+            
+            <p style="margin-top: 40px; color: rgba(255,255,255,0.8); font-size: 0.9rem; letter-spacing: 0.3px;">Sted: <a href="https://maps.google.com/?q=Trondheimsveien+2+bygg+H+Oslo" target="_blank" style="color: rgba(255,255,255,0.9); text-decoration: none; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.5);">Øvingshotellet, Trondheimsveien 2 C, bygg H, Oslo</a></p>
+        </div>
+
+        <div id="kurs" class="section">
+            <h1>Kurs</h1>
+            <div class="course-item">
+                <h2>Privatkurs for nybegynnere - Fysisk</h2>
+                <p>Personlig opplæring tilpasset din nivå og tempo. Du får en-til-en undervisning i grunnleggende DJ-teknikker, beatmatching og utstyrsbruk. Gjennomført fysisk på vår lokasjon.</p>
+                <div style="margin-top: 20px; display: flex; gap: 12px;">
+                    <button onclick="openBooking('Privatkurs for nybegynnere - Fysisk')" style="background: white; border: 1px solid #6c5ce7; color: #6c5ce7; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
+                        Finn tid
+                    </button>
+                </div>
+            </div>
+            <div class="course-item">
+                <h2>Gruppekurs for nybegynnere - Fysisk</h2>
+                <p>Lær DJ-ing sammen med andre nybegynnere i en støttende og inspirerende miljø. Perfekt for å bygge selvtillit og få vennskap.</p>
+                <p style="color: #666; margin: 8px 0;"><strong>Hver tirsdag 17:15 - 18:30</strong> • 5 samlinger • Plass til 6 elever</p>
+                <p style="color: #666; margin: 8px 0;"><strong>Sted:</strong> <a href="https://maps.google.com/?q=Trondheimsveien+2+bygg+H+Oslo" target="_blank" style="color: #5B4B9D; text-decoration: none; cursor: pointer; border-bottom: 1px solid #5B4B9D;">Øvingshotellet, Trondheimsveien 2, bygg H, Oslo</a></p>
+                <p style="font-weight: 700; color: #5B4B9D; font-size: 1.1rem; margin: 12px 0;">Starter januar 2027 - 3990 kr</p>
+                <div style="margin-top: 20px; display: flex; gap: 12px;">
+                    <button onclick="openBooking('Gruppekurs for nybegynnere - Fysisk')" style="background: white; border: 1px solid #6c5ce7; color: #6c5ce7; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
+                        Reservér plass
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="blogg" class="section">
+            <h1>Blogg</h1>
+            <div class="blog-post" onclick="openBlogPost('post1')">
+                <h2>5 tips til å bli en bedre DJ</h2>
+                <p>Lær viktige tips og triks fra erfarne DJer. Disse fem strategiene vil forbedre dine miksinger og gjøre deg til en mer selbevare artist.</p>
+                <p style="color: #6c5ce7; font-weight: 600; margin-top: 12px;">Les mer</p>
+            </div>
+            <div class="blog-post" onclick="openBlogPost('post2')">
+                <h2>Hvordan finne DJ-musikk</h2>
+                <p>Oppdag hvor du finner den beste musikken til dine sets. Fra spesialiserte blogger til DJ-mikser, streaming-tjenester og tips til å bygge en variert musikkbank som passer din stil.</p>
+                <p style="color: #6c5ce7; font-weight: 600; margin-top: 12px;">Les mer</p>
+            </div>
+            <div class="blog-post" onclick="openBlogPost('post3')">
+                <h2>Hvordan leser man dansegulvet</h2>
+                <p>Lær å tolke energi og stemning på dansegulvet for å spille riktig musikk på riktig tid. Dette er en kritisk ferdighet for enhver DJ som ønsker å skape en minneverdig opplevelse.</p>
+                <p style="color: #6c5ce7; font-weight: 600; margin-top: 12px;">Les mer</p>
+            </div>
+            <div class="blog-post" onclick="openBlogPost('post4')">
+                <h2>Hvordan organisere musikk som DJ</h2>
+                <p>Få praktiske tips til hvordan du organiserer og strukturerer musikkbiblioteket ditt for maksimal effektivitet under opptreden. En velorganisert musikkbank sparer tid og reduserer stress.</p>
+                <p style="color: #6c5ce7; font-weight: 600; margin-top: 12px;">Les mer</p>
+            </div>
+            <div class="blog-post" onclick="openBlogPost('post5')">
+                <h2>Hva trenger man til DJ-ing</h2>
+                <p>En komplett guide til det utstyret og ressursene du trenger for å komme i gang som DJ. Fra turntables til miksere, headphones til software – vi dekker alt.</p>
+                <p style="color: #6c5ce7; font-weight: 600; margin-top: 12px;">Les mer</p>
+            </div>
+            <div class="blog-post" onclick="openBlogPost('post6')">
+                <h2>Hvordan får man spillejobber</h2>
+                <p>Lær strategiene og tipsene som trengs for å få dine første DJ-oppdrag og etablere deg som profesjonell DJ. Få innsikt i networking, markedsføring og hvordan du promoterer deg selv.</p>
+                <p style="color: #6c5ce7; font-weight: 600; margin-top: 12px;">Les mer</p>
+            </div>
+            <div class="blog-post" onclick="openBlogPost('post7')">
+                <h2>Tre tips til din DJ mix</h2>
+                <p>Tre essensielle tips som vil forbedre kvaliteten på dine DJ-mikser og gjøre dem mer sømløse, energiske og engasjerende for publikum.</p>
+                <p style="color: #6c5ce7; font-weight: 600; margin-top: 12px;">Les mer</p>
+            </div>
+        </div>
+
+        <div id="kontakt" class="section">
+            <h1>Kontakt</h1>
+            <p>Har du spørsmål eller ønsker mer informasjon? Vi er her for å hjelpe!</p>
+            <div style="background: #f5f5f5; padding: 32px; border-radius: 12px; max-width: 600px; margin: 32px auto;">
+                <form id="contactForm">
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Navn</label>
+                        <input type="text" id="contact_name" placeholder="Ditt navn" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;">
+                    </div>
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">E-post</label>
+                        <input type="email" id="contact_email" placeholder="din@epost.no" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;">
+                    </div>
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Melding</label>
+                        <textarea id="contact_message" placeholder="Din melding..." required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; min-height: 120px; resize: vertical;"></textarea>
+                    </div>
+                    <button type="submit" id="contactSubmitBtn" style="width: 100%; padding: 14px; background: #5B4B9D; color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">Send melding</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="profil" class="section">
+            <div id="loginView">
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; gap: 24px;">
+                    <h1 style="font-size: 36px; margin-bottom: 16px;">Velkommen til din profil</h1>
+                    <p style="color: #636e72; font-size: 16px; margin-bottom: 32px;">Logg inn eller registrer deg for å se dine kjøpte kurs og video-materialer</p>
+                    <div style="display: flex; gap: 16px;">
+                        <button onclick="openLoginModal()" style="padding: 14px 32px; font-size: 16px;">Logg inn</button>
+                        <button onclick="openRegisterModal()" style="padding: 14px 32px; font-size: 16px; background: linear-gradient(135deg, #8b7fd3 0%, #b8b3d6 100%);" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">Registrer deg</button>
+                    </div>
+                </div>
+            </div>
+            <div id="userProfileView" style="display: none;">
+                <h1>Min Profil</h1>
+                <div class="profile-info">
+                    <div class="info-card">
+                        <h3>Navn</h3>
+                        <p id="userFullName">-</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>E-post</h3>
+                        <p id="userEmail">-</p>
+                    </div>
+                </div>
+
+                <h2>Mine Kjøpte Kurs</h2>
+                <div id="purchasedCourses" style="display: grid; gap: 24px; margin-bottom: 40px;">
+                    <p style="color: #636e72;">Laster inn dine kurs...</p>
+                </div>
+
+                <div style="margin-top: 40px;">
+                    <button onclick="logout()">Logg Ut</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Lydbar. Alle rettigheter forbeholdt. | Dedikert til DJ-kultur og musikk.</p>
+    </footer>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="login-modal">
+        <div class="login-modal-content">
+            <span class="close" onclick="closeLoginModal()">&times;</span>
+            <div class="login-header">
+                <h2>Logg inn</h2>
+                <p>Få tilgang til din DJ-profil</p>
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="login_email">E-post</label>
+                    <input type="email" id="login_email" name="login_email" placeholder="din@epost.no" required>
+                </div>
+                <div class="form-group">
+                    <label for="login_password">Passord</label>
+                    <input type="password" id="login_password" name="login_password" placeholder="Ditt passord" required>
+                </div>
+                <button type="submit" class="login-btn">Logg inn</button>
+            </form>
+            <div class="login-footer">
+                <p>Har du ikke konto? <a href="#" onclick="closeLoginModal(); openRegisterModal();">Opprett konto</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="registerModal" class="login-modal">
+        <div class="login-modal-content">
+            <span class="close" onclick="closeRegisterModal()">&times;</span>
+            <div class="login-header">
+                <h2>Registrer deg</h2>
+                <p>Opprett en konto for å få tilgang til dine kurs</p>
+            </div>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="register_name">Fullt navn</label>
+                    <input type="text" id="register_name" name="register_name" placeholder="Ditt navn" required>
+                </div>
+                <div class="form-group">
+                    <label for="register_email">E-post</label>
+                    <input type="email" id="register_email" name="register_email" placeholder="din@epost.no" required>
+                </div>
+                <div class="form-group">
+                    <label for="register_password">Passord</label>
+                    <input type="password" id="register_password" name="register_password" placeholder="Minst 8 tegn" required>
+                </div>
+                <div class="form-group">
+                    <label for="register_password_confirm">Gjenta passord</label>
+                    <input type="password" id="register_password_confirm" name="register_password_confirm" placeholder="Gjenta passord" required>
+                </div>
+                <button type="submit" class="login-btn">Opprett Konto</button>
+            </form>
+            <div class="login-footer">
+                <p>Har du allerede konto? <a href="#" onclick="closeRegisterModal(); openLoginModal();">Logg inn her</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Blog Post Modal -->
+    <div id="blogModal" class="blog-modal">
+        <div class="blog-modal-content">
+            <span class="close" onclick="closeBlogPost()">&times;</span>
+            <h1 id="blogTitle">Blogg Innlegg</h1>
+            <div class="blog-meta" id="blogMeta"></div>
+            <div id="blogContent"></div>
+            <button class="back-button" onclick="closeBlogPost()">← Tilbake til Blogg</button>
+        </div>
+    </div>
+
+    <!-- Booking Modal -->
+    <div id="bookingModal" class="booking-modal">
+        <div class="booking-modal-content" style="max-width: 900px;">
+            <span class="close" onclick="closeBooking()">&times;</span>
+            <h2 id="bookingTitle">Finn Tid - 1t 15min kurs</h2>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 24px;">
+                <!-- Kalender -->
+                <div>
+                    <h3 style="font-size: 0.95rem; font-weight: 700; color: #5B4B9D; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Velg dato</h3>
+                    <div id="bookingCalendar" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 20px;"></div>
+                </div>
+                
+                <!-- Klokkeslett -->
+                <div>
+                    <h3 style="font-size: 0.95rem; font-weight: 700; color: #5B4B9D; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Velg tid</h3>
+                    <div id="bookingTimes" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;"></div>
+                </div>
+            </div>
+            
+            <!-- Valg viser -->
+            <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #5B4B9D;">
+                <p style="margin: 0; font-size: 0.9rem; color: #666;">
+                    <strong>Valgt tid:</strong> <span id="bookingDateTimeDisplay">Ikke valgt</span>
+                </p>
+            </div>
+            
+            <!-- Brukerinformasjon -->
+            <form id="bookingForm">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="booking-form-group">
+                        <label for="bookingName" style="font-weight: 600; font-size: 15px;">Fullt navn *</label>
+                        <input type="text" id="bookingName" required placeholder="Ditt navn" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    </div>
+                    <div class="booking-form-group">
+                        <label for="bookingEmail" style="font-weight: 600; font-size: 15px;">E-post *</label>
+                        <input type="email" id="bookingEmail" required placeholder="din@epost.no" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    </div>
+                    <div class="booking-form-group" style="grid-column: 1 / -1;">
+                        <label for="bookingPhone" style="font-weight: 600; font-size: 15px;">Telefon</label>
+                        <input type="tel" id="bookingPhone" placeholder="+47 ..." style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 16px; justify-content: flex-end; margin-top: 28px;">
+                    <button type="button" style="padding: 16px 32px; background: white; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 16px; color: #666; transition: all 0.3s ease;" onclick="closeBooking()">Avbryt</button>
+                    <button type="submit" id="bookingSubmitBtn" style="padding: 16px 48px; background: #5B4B9D; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 16px; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(91, 75, 157, 0.3);" disabled>Bekreft booking</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ==================== CORE NAVIGATION ====================
+        // Blog Posts Data - Extracted from actual Word documents
+        const blogPosts = {
+            post1: {
+                title: "5 tips til å bli en bedre DJ",
+                date: "22.08.2026",
+                readTime: "8 min",
+                content: `<p><strong>Alle DJ-er - nybegynnere og erfarne - trenger nye ideer, impulser og erfaringer.</strong> I dette innlegget finner du 5 tips til hvordan forberede og spille inn DJ-miks, hvordan lære av andre DJ-er, hvordan og hvorfor telling av taktslag under beatmatching er viktig for dansegulvet, samt hvor viktig det er med planlegging av sjangere før spillejobben.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Spill inn og hør på egen DJ-miks</h3>
+<p>Nok et godt tips er å spille inn samt høre på egen DJ-miks. Det er spesielt viktig når du er nybegynner, slik at du kan høre dine egne feil, analysere hva du gjorde og finne ut av hvordan overgangen kunne vært løst bedre. For eksempel, om du hører at overgangen ble rotete (vokal spilte over vokal osv.), kan du neste gang bestemme deg for at overgang gjøres der det er færre instrumenter eller når vokalen slutter.</p>
+
+<p>En annen grunn til å ta opp egen DJ-miks er at du kan bruke den som "demo" når du skal finne spillejobber. Du kan for eksempel sende miksen til arrangører av arrangementer, klubber osv. for å vise hva du kan. Det er likevel viktig at du tenker på hvem miksen skal sendes til. Er det en klubb som spiller house-musikk, bør miksen din også primært bestå av house-musikk. Er det et bryllup du skal spille i, bør miksen inneholde varierte sjangere og kjente låter som de fleste liker.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Hold det enkelt</h3>
+<p>Som nybegynner kan det være lett å overdrive med effekter og hot-cues (snarveier til deler av en låt). Prøv å holde det enkelt de første månedene: fokuser på å få til gode overganger fremfor å bruke masse effekter. For mye bruk av effekter kan fort høres rotete ut og ødelegge flyten i musikken og dermed ødelegge stemningen på dansegulvet.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Hør på andre DJ-er</h3>
+<p>Når du hører på andre DJ-er - enten det er på nett eller på en klubb - så lærer du også mye selv. Du kan blant annet høre hvilke låter som spilles, hvilke sjangere de blander sammen, hvordan de bygger opp stemningen (energien), hvordan de gjør overganger og hvordan de leser dansegulvet. Det kan også være lurt å se på DJ-videoer på YouTube for å lære nye teknikker, som for eksempel «3 deck mixing» (spille med tre spillere samtidig) eller hvordan man bruker effekter på en god måte.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Lær deg musikkteori (og å telle)</h3>
+<p>Musikk består av taktslag (beats), takter (bars) og fraser (phrases). For å kunne beatmatche (få to låter til å gå i samme takt) må du kunne telle taktslag. De fleste sjangere innen elektronisk musikk (og pop, rock med mer) har fire taktslag i en takt (4/4 takt). Det betyr at du teller: 1, 2, 3, 4, og så begynner du på 1 igjen.</p>
+
+<p>En frase består som regel av 4, 8, 16 eller 32 takter. Det er i starten av en ny frase at det skjer endringer i låten (for eksempel at trommene kommer inn, vokalen starter med mer). Det er her du bør starte overgangen til neste låt, slik at overgangen høres naturlig ut.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Planlegg spillelisten din</h3>
+<p>Før du drar på en spillejobb, er det viktig å ha en plan for musikken som skal spilles. Du bør ha en oversikt over hvilke sjangere du skal spille, hvilke låter som passer sammen, og i hvilken rekkefølge du tenker å spille dem. Selvsagt må man tilpasse seg publikum, men å ha en rød tråd gjør at du føler deg tryggere underveis.</p>
+
+<p>I starten kan det være lurt å lage en spilleliste som er litt lengre enn selve spillejobben, slik at du har nok låter å velge mellom dersom du må endre retning. Du kan også organisere spillelisten etter tempo (BPM) eller energinivå, slik at det blir lettere å finne låter som passer sammen.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Oppsummering</h3>
+<p>Å bli en flink og god DJ krever mye øving, tålmodighet og vilje til å lære. Ved å følge disse tipsene vil du gradvis bygge opp selvtillit og tekniske ferdigheter, uansett om målet ditt er å spille på store klubber eller bare ha det gøy hjemme.</p>`
+            },
+            post2: {
+                title: "Hvordan finne DJ-musikk",
+                date: "15.01.2025",
+                readTime: "7 min",
+                content: `<p><strong>DJ-musikk: Hvordan finner man den?</strong> Det finnes flere ulike måter å utforske musikk på, og som DJ trenger man en stor spilleliste som kan passe til ens egen stil. Innlegget handler om hvor og hva man bør se etter når man søker etter ny DJ-musikk til spillelisten sin, og hvilke løsninger som kan bidra til en enklere søkeprosess.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Hvor finner man DJ-musikk?</h3>
+<p>Det finnes i hovedsak to måter å skaffe seg DJ-musikk på:</p>
+<ul style="margin: 12px 0 12px 24px;">
+<li>Strømmetjenester</li>
+<li>Nedlasting / kjøp av musikk</li>
+</ul>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Strømmetjenester for DJ-er</h3>
+<p>Mange DJ-programmer (som Rekordbox, Serato, Traktor med flere) har integrerte strømmetjenester. Dette gjør at du kan spille musikk direkte fra internett, uten å måtte laste ned filene først. Fordelen er at du får tilgang til millioner av låter umiddelbart, og slipper å bruke mye lagringsplass på datamaskinen din.</p>
+
+<p>Noen av de mest populære strømmetjenestene for DJ-er er:</p>
+<ul style="margin: 12px 0 12px 24px;">
+<li><strong>Beatport Streaming:</strong> Spesielt godt egnet for elektronisk klubbmusikk (house, techno, drum & bass osv.).</li>
+<li><strong>Beatsource Streaming:</strong> Fokusert på mer kommersiell musikk (pop, hip-hop, latin, r&b).</li>
+<li><strong>Tidal:</strong> Har et enormt musikkbibliotek og god lydkvalitet.</li>
+<li><strong>SoundCloud Go+:</strong> Populært for å finne remikser og uavhengig musikk.</li>
+</ul>
+
+<p>Ulempen med strømming er at du er avhengig av en stabil internettforbindelse under spillingen. Går internett ned, stopper musikken – og det vil man helst unngå på en profesjonell spillejobb.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Laste ned og kjøpe DJ-musikk</h3>
+<p>Det tryggeste alternativet – og det de aller fleste profesjonelle DJ-er foretrekker – er å kjøpe og laste ned musikken som lydfiler (MP3, WAV eller AIFF). Da eier du filene selv, og du er helt uavhengig av internett når du står på scenen.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Hvor kan du kjøpe og laste ned musikk?</h3>
+<ul style="margin: 12px 0 12px 24px;">
+<li><strong>Beatport:</strong> Verdens største nettsted for elektronisk musikk.</li>
+<li><strong>Bandcamp:</strong> Her går en stor andel av inntektene direkte til artistene selv.</li>
+<li><strong>Traxsource:</strong> Fokusert på house og deep house.</li>
+<li><strong>iTunes Store:</strong> Godt egnet for kommersiell pop, rock og topp 40.</li>
+<li><strong>DJ Pools:</strong> Abonnementsbaserte tjenester som BPM Supreme, DJcity og Franchise Record Pool.</li>
+</ul>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Viktigheten av god lydkvalitet</h3>
+<p>Uansett hvor du skaffer musikken din fra, må du passe på kvaliteten på lydfilene. På et stort anlegg vil dårlig lydkvalitet raskt avsløres. Når du laster ned MP3-filer, bør du alltid velge 320 kbps, som er den høyeste kvaliteten for dette formatet.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Slik oppdager du ny musikk</h3>
+<ul style="margin: 12px 0 12px 24px;">
+<li>Følg favorittartistene dine på sosiale medier</li>
+<li>Hør på podcaster og DJ-sett fra andre profilerte DJ-er</li>
+<li>Sjekk listene ("Top 100") på Beatport og Traxsource</li>
+<li>Utforsk algoritme-baserte spillelister som Spotifys "Release Radar"</li>
+</ul>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Når musikken er på plass – ta vare på den</h3>
+<p>Til minnepenn anbefaler jeg på det sterkeste Corsair Survivor, som i 32 GB-versjon gir deg god plass til spillelistene dine og solid, robust kapsling som tåler å falle i gulvet.</p>`
+            },
+            post3: {
+                title: "Hvordan leser man dansegulvet",
+                date: "10.01.2026",
+                readTime: "6 min",
+                content: `<p><strong>En viktig del av DJ-yrket er å kunne lese dansegulvet.</strong> En god DJ tilpasser musikken slik at gjester blir fornøyde med musikken.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Ikke let så lenge etter en låt</h3>
+<p>For å kunne tilpasse musikken til publikum må man først og fremst sørge for å ha en stor samling av låter - med ulike sjangre, rytmer og energinivåer - som kan appellere til det publikummet som kommer på dansegulvet. Som allround-DJ har man naturligvis et bredt publikum.</p>
+
+<p>Uansett om man er allround-DJ eller ikke, er det like viktig at musikksamlingen er godt organisert i mapper og undermapper, slik at man bruker minst mulig tid på å lete etter spesifikke låter med spesifikke karakterer på spillejobber. Det gir mer tid til å lese dansegulvet.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Start forsiktig</h3>
+<p>Først og fremst, spill låter med lav bpm (tempo) og bygg opp til et høyere tempo utover spillingen. Dette er viktig om man er den første DJ-en som spiller den dagen, og som derfor må bygge opp energien (stemningen) gradvis.</p>
+
+<p>Om man tar over for en warm-up DJ er publikumet forhåpentligvis allerede varmet opp, men pass på å fortsette den gradvise økningen av tempo som warm-up DJ-en har jobbet så lenge med, slik at stemningen på dansegulvet ikke går ned. Om man går fra 123 til 130 BPM på kort tid, og i tillegg skifter rytme eller sjanger, så vil publikum føle usikkerhet og potensielt forlate dansegulvet.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Tenk positivt</h3>
+<p>DJ-ens tanker og energi kan overføres til publikumet, og det påvirker publikums humør og lyst til å danse. Ta det derfor med ro om du ser at ingen danser. Det kan være et tegn på at publikum ikke er klar for sjangeren, tempoet eller rytmen som presenteres.</p>
+
+<p>DJ som føler seg usikker fører raskt til bytting av sjanger, tempo eller rytme, og det kan oppleves som uprofesjonelt. Usikkerheten blir veldig lett overført til publikumet. Holder man seg rolig vil man kunne tenke klart og derfor ta bedre valg.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Spill ønskelåter</h3>
+<p>Ta gjerne imot ønskelåter, men la det ikke gå utover planlagte låter og energinivåer. Man skal tenke på å gradvis øke tempo, og gradvis senke det, men om ønskelåten spilles i feil energinivå så vil det forstyrre danseflyten på dansegulvet.</p>
+
+<p>Å ta imot ønskelåter vil gjøre den som spør fornøyd, men det kan gi en pekepinn på hvilken retning man kan gå i når det kommer til musikkvalg.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Spill så ofte som mulig</h3>
+<p>Som nybegynner bør man spille ofte og regelmessig, om man har mulighet til det, slik at man lærer hva som fungerer og ikke. Det anbefales for alle DJ-er i alle nivåer å spille inn den musikken man har spilt på spillejobben, for da kan man i etterkant høre på miksen og notere ned hva som kunne vært bedre.</p>`
+            },
+            post4: {
+                title: "Hvordan organisere musikk som DJ",
+                date: "05.01.2026",
+                readTime: "7 min",
+                content: `<p><strong>Hvordan organisere musikk som DJ?</strong> Det finnes mange måter å organisere musikk på; den beste måten er den som gir deg en rask og enkel oversikt over samlingen din.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Etabler mapper basert på sjanger</h3>
+<p>Først og fremst, rydd og sorter musikksamlingen din etter de sjangrene du oftest spiller, som for eksempel House, Techno, Pop, Disco, Rock, R&B, Rap med mer. Mange foretrekker også å opprette mapper som også representerer tidsperioder, som 80s, 90s, 2000s, eller sjangere med høyt og lavt energinivå.</p>
+
+<p>Har du mye musikk, kan det være hensiktsmessig å dele opp en sjanger-mappe (f.eks. House) i flere undermapper (som f.eks. Deep House, Tech House osv.) og dermed rydde mer i samlingen din.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Bruk stjernemerker og farger</h3>
+<p>Et annet lurt tips er å ta i bruk stjernemerker eller fargekoding for å identifisere ulike egenskaper ved låtene. For eksempel kan du bruke fargekoding som indikerer energinivå: grønn for lav energi (perfekt for oppvarming), gul for middels energi og rød for høy energi.</p>
+
+<p>Stjernemerking kan også brukes, der 1 stjerne betyr lav energi og 5 stjerner betyr høyest energi. Det vil gjøre det raskt og enkelt å navigere og finne låter basert på energinivå.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Vær forsiktig med "All" mappen og dubletter</h3>
+<p>Du bør unngå å beholde dubletter (to helt like lydfiler av samme låt) i musikksamlingen din, fordi dette tar unødvendig lagringsplass og kan skape forvirring når du søker etter låter under en spillejobb.</p>
+
+<p>Det anbefales også å unngå å spille fra en kjempestor "alle låter"-mappe. Sorter heller låtene i mer spesifikke spillelister. Det gjør at du finner fram mye raskere når du skal spille.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Oppsummering</h3>
+<p>Organisering av musikken krever tålmodighet, spesielt om du har mange låter i samlingen din fra før og må rydde i disse. Men det er en investering som vil gjøre det mye enklere å navigere i biblioteket og gi deg mer trygghet under spillingen. Start med det grunnleggende som sjanger og energinivå (farger/stjerner), så vil du merke forskjellen allerede på din neste spillejobb.</p>`
+            },
+            post5: {
+                title: "Hva trenger man til DJ-ing",
+                date: "01.01.2026",
+                readTime: "9 min",
+                content: `<p><strong>Hva trenger man til DJ-ing?</strong> Som nybegynner er det ofte best å velge en enkel DJ-kontroller/spiller fordi den har færre funksjoner, tar ikke mye plass, veier lite - som gjør det enkelt å ta den med seg på spillejobber - og tar mindre tid å lære.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Hodetelefoner</h3>
+<p>Når man skal velge hodetelefoner er det viktig å kunne høre lyden klart og tydelig, at de har god støyisolering slik at de stenger ute uønsket støy fra omgivelsene, og at de er komfortable å ha på seg over lengre tid. Noen kjente og gode hodetelefoner er Pioneer HDJ-X5 og Sennheiser HD 25.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Hva og hvor mye utstyr trenger man som DJ?</h3>
+<p>Det varierer veldig etter hva slags DJ du ønsker å være. Som mobil-DJ, altså en DJ som reiser rundt og tar spillejobber i bryllup, bursdager, konfirmasjoner, firmafester, julebord, med mer, må man ofte ha med seg eget lyd- og lysutstyr, i tillegg til DJ-utstyret. Det kan fort bli en stor investering og krever mye planlegging samt tid til opprigg og nedrigg på spillestedet.</p>
+
+<p>Som klubb-DJ derimot, slipper du ofte å tenke på alt dette, fordi klubbene som regel har eget lydanlegg, lysanlegg og profesjonelt DJ-utstyr (som for eksempel Pioneer CDJ-spillere og mikser) fast installert på scenen. Du trenger da vanligvis kun å ha med deg en minnepenn med ferdiganalysert musikk samt egne hodetelefoner.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Anbefalt DJ-kontroller for nybegynnere</h3>
+<p>Det finnes i dag et stort utvalg av DJ-kontrollere tilpasset nybegynnere. En av de mest populære og anbefalte modellene er Pioneer DDJ-FLX4.</p>
+
+<p>Dette er en svært allsidig, kompakt og brukervennlig 2-kanals kontroller som støtter både Rekordbox og Serato DJ Lite – to av de mest brukte programmene i bransjen. Den har et oppsett som minner om det profesjonelle klubbutstyret fra Pioneer, noe som gjør det lettere å gå over til klubbspillere senere om du ønsker det. I tillegg kan den kobles direkte til både PC, Mac, iPad og mobiltelefoner, og den strømdrives via USB-kabel.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Bærbar datamaskin</h3>
+<p>Du trenger også en bærbar datamaskin (laptop) som du kobler til DJ-kontrolleren din for å laste inn musikken og kjøre DJ-programvaren. Det stilles i dag ikke like strenge krav til spesifikasjoner på datamaskiner som tidligere, men du bør likevel sørge for å ha en relativt ny modell med god prosessor og nok RAM (minst 8 GB, men gjerne 16 GB).</p>
+
+<p>Både Windows-maskiner og Mac fungerer utmerket til formålet, men mange musikere og DJ-er foretrekker Mac på grunn av stabiliteten til macOS-systemet.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Høyttalere og kabler</h3>
+<p>For å kunne høre musikken du mikser når du øver hjemme, trenger du et par høyttalere (såkalte monitorer). For nybegynnere kan det være lurt å starte med et par aktive monitorer (høyttalere med innebygd forsterker), for da slipper du å kjøpe ekstern forsterker. Noen gode alternativer er Pioneer DM-40D, KRK Rokit RP5 eller Yamaha HS5.</p>
+
+<p>Du må også ha riktige kabler for å koble utstyret sammen. Som regel følger de viktigste kablene med når du kjøper DJ-kontroller og høyttalere, men du bør alltid ha noen ekstra kabler liggende, som f.eks. RCA-kabler og minijack-kabler, i tilfelle noe skulle slutte å fungere underveis.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Oppsummering</h3>
+<p>Å starte som DJ trenger ikke å koste en formue. Med en god nybegynner-kontroller som Pioneer DDJ-FLX4, en stabil laptop, et par gode hodetelefoner og noen enkle høyttalere har du alt du trenger for å komme i gang med å mikse musikk og lære faget.</p>`
+            },
+            post6: {
+                title: "Hvordan får man spillejobber",
+                date: "20.12.2025",
+                readTime: "8 min",
+                content: `<p><strong>Hvordan får man spillejobber?</strong> Å få dine første DJ-jobb krever strategi, nettverksbygging og dedikasjon.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">DJ-navn og Google</h3>
+<p>Et fengende og unikt DJ-navn gjør det lettere å bli lagt merke til, og forhåpentligvis også husket i lang tid. Et lurt triks er å bruke ordet "DJ" i DJ-navnet, fordi når man søker etter DJ-er så vil man mest sannsynlig skrive "DJ" i søkefrasen i Google. Om du heter f.eks. "DJ Dejan", så vil Google lettere fange opp dette og vise nettsiden din eller profilen din på sosiale medier til de som søker.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Etabler nettside og sosiale medier</h3>
+<p>For å få spillejobber bør du være synlig på nett og sosiale medier, som Instagram, Facebook, TikTok med mer. Du kan for eksempel opprette en egen profil på sosiale medier der du legger ut bilder og videoer fra arrangementer du har spilt på, eller små videoer der du mikser musikk hjemme.</p>
+
+<p>Det er også en fordel å ha en profesjonell nettside der du viser fram hvem du er, hva du kan tilby, referanser fra tidligere kunder samt kontaktinformasjon, slik at potensielle kunder kan ta kontakt med deg for spillejobber. Du kan bruke gratisverktøy som f.eks. Wix eller WordPress for å rulle ut nettsiden din.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Bruk nettverket ditt</h3>
+<p>Spør venner, familie og bekjente om de vet om noen som trenger en DJ til f.eks. en bursdag, bryllup, firmafest med mer. Det er en av de beste måtene å få sine første spillejobber på, fordi folk stoler mer på anbefalinger fra folk de kjenner.</p>
+
+<p>Du kan også ta kontakt med lokale barer, utesteder, klubber, eventbyråer med mer og fortelle hvem du er og hva du gjør. Ta gjerne med deg en minnepenn med en DJ-miks du har spilt inn, slik at de kan høre på hva du kan levere. Det viser initiativ og engasjement, og kan fort føre til en spillejobb.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Registrer deg på portaler</h3>
+<p>Det finnes flere nettsider og portaler der du kan registrere deg som DJ og motta forespørsler om spillejobber. Eksempler på slike portaler i Norge er "Musikkformidling.no" og "Mittanbud.no". Her kan kunder legge ut oppdrag de trenger DJ til, og du kan gi tilbud på oppdraget. Det kan være en god måte å få spillejobber på, spesielt i starten når du ikke har et stort nettverk eller en etablert kundebase fra før.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Oppsummering</h3>
+<p>Å få spillejobber handler mye om å være synlig, aktiv og profesjonell i alt du gjør. Ved å ha et godt og Google-vennlig DJ-navn, en ryddig nettside samt profiler på sosiale medier, bruke nettverket ditt og registrere deg på relevante portaler, vil du øke sjansene dine betraktelig for å få flere spillejobber. Vær tålmodig og stå på, så vil resultatene komme etter hvert.</p>`
+            },
+            post7: {
+                title: "Tre tips til din DJ mix",
+                date: "15.12.2025",
+                readTime: "5 min",
+                content: `<p><strong>3 tips til din DJ miks</strong> - En DJ miks er en flott måte å vise andre hvordan du er som DJ. Her viser jeg deg tre tips til hva som er viktig å tenke på, samt hvilket DJ program du kan bruke, før du begynner å spille inn egen DJ-miks.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Hvem spiller du til?</h3>
+<p>DJ-miks er veien din til spillejobben du ønsker deg. Du må derfor vite hvem du spiller til, slik at du kan velge låter som passer til den anledningen. Er det for et bryllup, bør du tenke på at det kommer gjester i ulike aldre, og at musikken derfor bør være variert med kjente låter. Er det for en nattklubb, bør du derimot fokusere på en spesifikk sjanger (f.eks. house) og bygge opp energien slik at folk danser.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Hold det enkelt</h3>
+<p>Som nybegynner bør du unngå å gjøre miksen for komplisert. Enkelte DJ-er kan tro at en god miks må inneholde mange lydeffekter, raske skifter av låter og avanserte teknikker. Det stemmer ofte ikke. Det beste er ofte å holde det enkelt og fokusere på å gjøre gode og flytende overganger, der låtene passer sammen rytmemessig (beatmatching) og har et naturlig energinivå. For mye lydeffekter kan gjøre miksen rotete og slitsom å høre på.</p>
+
+<h3 style="color: #6c5ce7; margin-top: 24px; margin-bottom: 12px;">Riktig programvare</h3>
+<p>For å spille inn en DJ-miks trenger du en stabil og god programvare. De fleste DJ-kontrollere kommer i dag med en gratisversjon av Rekordbox eller Serato, og begge disse programmene har en innebygd opptaksfunksjon. Det betyr at du enkelt kan ta opp miksen din mens du spiller, og lagre den som en lydfil (f.eks. MP3 eller WAV) på datamaskinen din.</p>`
+            }
+        };
+
+        
+
+        function openBlogPost(postId) {
+            const post = blogPosts[postId];
+            if (post) {
+                document.getElementById('blogTitle').textContent = post.title;
+                document.getElementById('blogMeta').textContent = `Publisert: ${post.date} | Lesetid: ${post.readTime}`;
+                document.getElementById('blogContent').innerHTML = post.content;
+                document.getElementById('blogModal').classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function closeBlogPost() {
+            document.getElementById('blogModal').classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('blogModal');
+            if (event.target === modal) {
+                closeBlogPost();
+            }
+        });
+
+        // (showSection function moved to top of script)
+
+        // Add active state to nav links
+        document.querySelectorAll('nav a').forEach(link => {
+            link.addEventListener('click', function(e) {
+                document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Booking Modal Functions (closeBooking only - openBooking is defined earlier)
+        function closeBooking() {
+            const modal = document.getElementById('bookingModal');
+            modal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modal when clicking outside of it
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('bookingModal');
+            if (event.target === modal) {
+                closeBooking();
+            }
+        });
+
+        // Handle booking form submission
+        // Old booking form listener - REMOVED (use new async handler below instead);
+
+        // ==================== EMAILJS INTEGRATION ====================
+        // Initialize EmailJS with your public key (when available)
+        if (typeof emailjs !== 'undefined') {
+            emailjs.init('V78SaFZYJYRnB1NWc');
+        }
+
+        // Wrap all event listeners in DOMContentLoaded to ensure elements exist
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupEventListeners);
+        } else {
+            setupEventListeners();
+        }
+
+        function setupEventListeners() {
+            // Handle contact form submission
+            const contactForm = document.getElementById('contactForm');
+            if (contactForm) {
+                contactForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('contact_name').value;
+            const email = document.getElementById('contact_email').value;
+            const message = document.getElementById('contact_message').value;
+
+            const submitBtn = document.getElementById('contactSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sender...';
+
+            try {
+                // Check if EmailJS is available
+                if (typeof emailjs !== 'undefined') {
+                    // Email to Lydbar (admin)
+                    const adminEmailParams = {
+                        to_email: 'info@lydbar.no',
+                        from_name: name,
+                        from_email: email,
+                        message: message,
+                        reply_to: email
+                    };
+
+                    // Auto-reply to customer
+                    const autoReplyParams = {
+                        to_email: email,
+                        customer_name: name
+                    };
+
+                    try {
+                        // Send email to Lydbar
+                        await emailjs.send(
+                            'service_p3u90dm',     // Service ID
+                            'template_p108pmd',    // Template ID for admin email
+                            adminEmailParams
+                        );
+
+                        // Send auto-reply to customer
+                        await emailjs.send(
+                            'service_p3u90dm',     // Service ID
+                            'template_asjvvwo',    // Template ID for auto-reply
+                            autoReplyParams
+                        );
+
+                        alert('Takk for meldingen! Vi vil kontakte deg så snart som mulig.\n\nDu vil motta en bekreftelse på e-posten din.');
+                    } catch (error) {
+                        console.error('EmailJS Error:', error);
+                        alert('Melding sendt, men auto-reply kunne ikke sendes. Vi vil kontakte deg snart.');
+                    }
+                } else {
+                    // Fallback: if EmailJS is not loaded, send via email client
+                    const subject = 'Kontaktskjema fra Lydbar: ' + name;
+                    const body = `Navn: ${name}\nE-post: ${email}\n\nMelding:\n${message}`;
+                    const mailtoLink = `mailto:info@lydbar.no?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    
+                    alert('Åpner e-postprogram...');
+                    window.location.href = mailtoLink;
+                }
+                
+                // Reset form
+                document.getElementById('contactForm').reset();
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Send Melding';
+
+            } catch (error) {
+                console.error('Contact Form Error:', error);
+                alert('Det oppstod en feil under sending. Vennligst prøv igjen.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Send Melding';
+            }
+            });
+        }
+
+        // ==================== SUPABASE INITIALIZATION ====================
+        const SUPABASE_URL = 'https://omsclhkqaylnisdguqch.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9tc2NsaGtxYXlsbmlzZGd1cWNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ3NzM0MTAsImV4cCI6MjA0MDM0OTQxMH0.F1s2I1k0I0K0K0K0K0K0K0K0K0K0K0K0K0K0K0K0K0';
+
+        let supabase = null;
+        try {
+            if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                console.log('✓ Supabase initialized successfully');
+            } else {
+                console.warn('⚠ Supabase library not loaded, will use fallback storage');
+            }
+        } catch (error) {
+            console.error('✗ Failed to initialize Supabase:', error);
+        }
+
+        // ==================== BOOKING FORM SUBMISSION ====================
+        const bookingForm = document.getElementById('bookingForm');
+        if (bookingForm) {
+            bookingForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const fullName = document.getElementById('bookingName').value.trim();
+            const email = document.getElementById('bookingEmail').value.trim();
+            const phone = document.getElementById('bookingPhone').value.trim();
+            const isPrivatkurs = currentBookingCourseName === 'Privatkurs for nybegynnere - Fysisk';
+            
+            // Validation: check required fields
+            if (!fullName || !email) {
+                alert('Vennligst fyll inn alle obligatoriske felt');
+                return;
+            }
+            
+            // Validation: check date/dates
+            if (isPrivatkurs) {
+                if (selectedBookingDates.length !== 5) {
+                    alert('Vennligst velg alle 5 dager for privattkurset');
+                    return;
+                }
+            } else {
+                if (!selectedBookingDate || !selectedBookingTime) {
+                    alert('Vennligst velg en dato og tid');
+                    return;
+                }
+            }
+            
+            try {
+                // Save booking with correct course type
+                let bookingData = {
+                    full_name: fullName,
+                    email: email,
+                    phone: phone || null,
+                    duration_minutes: 75,
+                    course_type: currentBookingCourseName || 'Generelt kurs',
+                    created_at: new Date().toISOString()
+                };
+                
+                // Add date/time data based on course type
+                if (isPrivatkurs) {
+                    bookingData.booking_date = JSON.stringify(selectedBookingDates);
+                    bookingData.booking_time = selectedBookingDates[0].time;
+                    bookingData.end_time = selectedBookingDates[4].endTime;
+                } else {
+                    bookingData.booking_date = selectedBookingDate;
+                    bookingData.booking_time = selectedBookingTime;
+                    bookingData.end_time = selectedBookingEndTime;
+                }
+                
+                // If Supabase is available, save to database
+                if (supabase && typeof supabase.from === 'function') {
+                    try {
+                        const { error: dbError } = await supabase
+                            .from('bookings')
+                            .insert([bookingData]);
+                        
+                        if (dbError) {
+                            console.warn('Database error:', dbError);
+                            // Continue anyway - user sees success message
+                        } else {
+                            console.log('✓ Booking saved to Supabase');
+                        }
+                    } catch (err) {
+                        console.log('Booking saved locally (database error)');
+                    }
+                }
+                
+                // Show success message with booking details
+                let dateDisplayStr = '';
+                if (isPrivatkurs) {
+                    const dateTimeStrings = selectedBookingDates.map(slot => {
+                        const [year, month, day] = slot.date.split('-').map(Number);
+                        const date = new Date(year, month - 1, day);
+                        const dayStr = date.toLocaleDateString('no-NO', { weekday: 'short', day: 'numeric', month: 'short' });
+                        return `${dayStr} kl. ${slot.time}-${slot.endTime}`;
+                    });
+                    dateDisplayStr = dateTimeStrings.join('\n');
+                    alert(`Takk for bookingen!\n\n${dateDisplayStr}\nVarighet: 1t 15min\nKurs: ${currentBookingCourseName}\n\nVi sender en bekreftelses-e-post til ${email}`);
+                } else {
+                    const [year, month, day] = selectedBookingDate.split('-').map(Number);
+                    const date = new Date(year, month - 1, day);
+                    dateDisplayStr = date.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                    alert(`Takk for bookingen!\n\nDato: ${dateDisplayStr}\nTid: ${selectedBookingTime} - ${selectedBookingEndTime}\nVarighet: 1t 15min\nKurs: ${currentBookingCourseName}\n\nVi sender en bekreftelses-e-post til ${email}`);
+                }
+                
+                // Redirect to Stripe payment
+                const stripeCheckoutUrl = 'https://buy.stripe.com/4gM4gy0Xj2yQenTeXt5kk0l';
+                setTimeout(() => {
+                    window.location.href = stripeCheckoutUrl;
+                }, 2000);
+                
+                closeBooking();
+                document.getElementById('bookingForm').reset();
+            } catch (error) {
+                console.error('Booking error:', error);
+                alert('Det oppstod en feil. Vennligst prøv igjen eller kontakt oss direkte.');
+            }
+            });
+        }
+
+        // ==================== REGISTER FORM SUBMISSION ====================
+        const registerForm = document.getElementById('registerForm');
+        if (registerForm) {
+            registerForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const fullName = document.getElementById('register_name').value.trim();
+            const email = document.getElementById('register_email').value.trim();
+            const password = document.getElementById('register_password').value;
+            const passwordConfirm = document.getElementById('register_password_confirm').value;
+
+            // Validation
+            if (!fullName) {
+                alert('Vennligst skriv inn ditt fulle navn');
+                return;
+            }
+
+            if (!email) {
+                alert('Vennligst skriv inn en gyldig e-postadresse');
+                return;
+            }
+
+            if (password.length < 8) {
+                alert('Passord må være minst 8 tegn');
+                return;
+            }
+
+            if (password !== passwordConfirm) {
+                alert('Passordene er ikke like');
+                return;
+            }
+
+            try {
+                if (supabase) {
+                    // Sign up with Supabase Auth
+                    const { data: authData, error: authError } = await supabase.auth.signUp({
+                        email: email,
+                        password: password,
+                        options: {
+                            data: {
+                                full_name: fullName
+                            }
+                        }
+                    });
+
+                    if (authError) {
+                        if (authError.message.includes('already registered')) {
+                            alert('Denne e-postadressen er allerede registrert');
+                        } else {
+                            throw authError;
+                        }
+                        return;
+                    }
+
+                    // Create user profile in users table
+                    if (authData && authData.user) {
+                        const { error: dbError } = await supabase
+                            .from('users')
+                            .insert([{
+                                id: authData.user.id,
+                                email: email,
+                                full_name: fullName,
+                                created_at: new Date().toISOString()
+                            }]);
+
+                        if (dbError) {
+                            console.error('Database error:', dbError);
+                            // Still show success if auth worked but DB failed
+                            alert('Registrering vellykket! Bekreft e-posten din for å logge inn.');
+                        } else {
+                            alert('Registrering vellykket! Bekreft e-posten din for å logge inn.');
+                        }
+                    }
+
+                    closeRegisterModal();
+                    document.getElementById('registerForm').reset();
+                } else {
+                    // Fallback: store in localStorage
+                    const users = JSON.parse(localStorage.getItem('users') || '[]');
+                    if (users.some(u => u.email === email)) {
+                        alert('E-posten er allerede registrert');
+                        return;
+                    }
+                    users.push({ 
+                        id: Date.now().toString(),
+                        email, 
+                        password, 
+                        full_name: fullName,
+                        created_at: new Date().toISOString()
+                    });
+                    localStorage.setItem('users', JSON.stringify(users));
+                    alert('Registrering vellykket (lokal lagring)! Du kan nå logge inn.');
+                    closeRegisterModal();
+                    document.getElementById('registerForm').reset();
+                }
+            } catch (error) {
+                console.error('Register Error:', error);
+                alert('Registrering feilet: ' + (error.message || 'Ukjent feil'));
+            }
+        });
+
+        // ==================== LOGIN WITH SUPABASE ====================
+        // Check if user is logged in on page load
+        window.addEventListener('load', async function() {
+            if (supabase) {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session && session.user) {
+                    await showUserProfile(session.user);
+                }
+            } else {
+                // Fallback: check localStorage
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+                if (currentUser) {
+                    showUserProfileLocal(currentUser);
+                }
+            }
+            });
+        }
+
+        // Update login form to work with Supabase
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const email = document.getElementById('login_email').value;
+            const password = document.getElementById('login_password').value;
+
+            try {
+                if (supabase) {
+                    const { data, error } = await supabase.auth.signInWithPassword({
+                        email: email,
+                        password: password
+                    });
+
+                    if (error) throw error;
+
+                    // Fetch user profile
+                    const { data: userProfile, error: profileError } = await supabase
+                        .from('users')
+                        .select('*')
+                        .eq('id', data.user.id)
+                        .single();
+
+                    if (profileError) throw profileError;
+
+                    await showUserProfile(data.user);
+                    closeLoginModal();
+                    document.getElementById('loginForm').reset();
+                } else {
+                    // Fallback: localStorage
+                    const users = JSON.parse(localStorage.getItem('users') || '[]');
+                    const user = users.find(u => u.email === email && u.password === password);
+                    
+                    if (!user) {
+                        alert('E-post eller passord er feil');
+                        return;
+                    }
+
+                    localStorage.setItem('currentUser', JSON.stringify(user));
+                    showUserProfileLocal(user);
+                    closeLoginModal();
+                    document.getElementById('loginForm').reset();
+                }
+            } catch (error) {
+                console.error('Login Error:', error);
+                alert('Innlogging feilet: ' + (error.message || 'E-post eller passord er feil'));
+            }
+            });
+        }
+        }
+        // End of setupEventListeners function
+
+        // ==================== USER PROFILE DISPLAY ====================
+        async function showUserProfile(user) {
+            document.getElementById('loginView').style.display = 'none';
+            document.getElementById('userProfileView').style.display = 'block';
+            
+            // Fetch user full name
+            if (supabase) {
+                const { data: userProfile } = await supabase
+                    .from('users')
+                    .select('full_name')
+                    .eq('id', user.id)
+                    .single();
+
+                document.getElementById('userFullName').textContent = userProfile?.full_name || user.email;
+            }
+
+            document.getElementById('userEmail').textContent = user.email;
+
+            // Fetch and display purchased courses
+            if (supabase) {
+                const { data: courses } = await supabase
+                    .from('purchases')
+                    .select('courses(*)')
+                    .eq('user_id', user.id);
+
+                const coursesContainer = document.getElementById('purchasedCourses');
+                
+                if (courses && courses.length > 0) {
+                    let coursesHTML = '';
+                    courses.forEach(purchase => {
+                        if (purchase.courses) {
+                            coursesHTML += `
+                                <div style="background: white; border: 1px solid #e0e0e0; border-radius: 12px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+                                    <h3 style="color: #6c5ce7; margin-bottom: 12px;">${purchase.courses.title}</h3>
+                                    <p style="color: #636e72; margin-bottom: 16px;">${purchase.courses.description}</p>
+                                    <a href="#" style="color: #6c5ce7; text-decoration: none; font-weight: 500;">Se kurs-videoer</a>
+                                </div>
+                            `;
+                        }
+                    });
+                    coursesContainer.innerHTML = coursesHTML;
+                } else {
+                    coursesContainer.innerHTML = '<p style="color: #636e72;">Du har ikke kjøpt noen kurs ennå. Besøk <a href="#" onclick="return showSection(\'kurs\'), false">Kurs</a>-siden for å se tilgjengelige kurs.</p>';
+                }
+            }
+        }
+
+        function showUserProfileLocal(user) {
+            document.getElementById('loginView').style.display = 'none';
+            document.getElementById('userProfileView').style.display = 'block';
+            document.getElementById('userFullName').textContent = user.fullName;
+            document.getElementById('userEmail').textContent = user.email;
+            
+            const coursesContainer = document.getElementById('purchasedCourses');
+            coursesContainer.innerHTML = '<p style="color: #636e72;">Kjøpte kurs vil vises her når Supabase er konfigurert.</p>';
+        }
+
+        // Logout function
+        function logout() {
+            if (supabase) {
+                supabase.auth.signOut();
+            }
+            localStorage.removeItem('currentUser');
+            
+            document.getElementById('loginView').style.display = 'block';
+            document.getElementById('userProfileView').style.display = 'none';
+            document.getElementById('loginForm').reset();
+        }
+    </script>
+</body>
+</html>

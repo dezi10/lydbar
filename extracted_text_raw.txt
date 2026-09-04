@@ -1,0 +1,341 @@
+[Output too large (40KB). Full output saved to: /Users/dejanzivanovic/Library/Application Support/Code/copilot-terminal-output/copilot-terminal-output-4eb67201-8a2f-47a2-9c85-ec6161d8711c.txt]
+[Use readFile or grep to examine the full output.]
+
+dejanzivanovic@Dejan-sin-MacBook-Air lydbar i vs % >....                        
+ndbox-runtime/dist/cli.js" --settings "/Users/dejanzivanovic/.vscode/tmp/tmp_vsc
+ode_1/vscode-sandbox-settings-3ac3f8ee-5673-4009-a8b2-f5fdddae31b7.json" -c 'cat
+ << '\''EOF'\'' > read_docx.py
+import os
+import docx
+
+directory = "/Users/dejanzivanovic/Desktop/lydbar i vs"
+files = [f for f in os.listdir(directory) if f.endswith('\''.docx'\'')]
+
+for file in sorted(files):
+    filepath = os.path.join(directory, file)
+  
+
+[... middle of output truncated ...]
+
+ anbefalt å lene seg på sync-funksjonen fordi DJ-utstyr - slik som Rekordbox -
+ofte gjør feil i analyseringen av låter, og det gjør at beatmatchingen ikke blir
+ korrekt sync-et.
+Les mer om miksing i mitt innlegg “4 tips til å bli en bedre DJ”. For å få en go
+d start, kan du også lære grunnleggende DJ-ing på ett av våre DJ kurs.
+Koble lenke:
+https://www.google.com/business/
+Kilder:
+http://www.howtodjquickly.com/11-best-tips-on-how-to-get-dj-gigs/
+KLADD:
+Vær aktiv på sosiale medier:
+Publiser innlegg regelmessig for å Her kan du fremheve DJ navnet ditt. Husk å re
+gelmessig
+
+----------------------------------------
+
+========================================
+FILE: Hvordan finne DJ-musikk.docx
+========================================
+Publisert: 15.01.25
+Lesetid: 5 min
+DJ-musikk: Hvordan finner man den?
+Det finnes flere ulike måter å utforske musikk på, og som DJ trenger man en stor
+ spilleliste som kan passe til ens egen stil, og eventuelt til mange anledninger
+, om du er en allround-DJ. Innlegget handler om hvor og hva man bør se etter for
+ å finne musikk.
+Blogg
+Det er mange mennesker som hører på lignende musikk som en selv, så da er det og
+så sannsynlig at man kan finne nisjeblogger den musikken, og følge dem med jevne
+ mellomrom. På den måten har man et sted å gå til, for å holde spillelisten sin
+oppdatert. I søkemotor, for eksempel i Google, kan man søke etter den sjangeren
+man ser etter, etterfulgt av et pluss (“+”) tegn og ordet “blogg”. Om man søker
+etter techno-musikk kan søkefrasen se slik ut: “techno + blogg”. Det er også anb
+efalt å søke på denne måten: “best (sjangernavn) music blogs and websites”. Er d
+et techno man leter etter, vil søkefrasen se slik ut: “best techno music blogs a
+nd websites”.
+Hør på DJ-miks som har spilleliste
+En populær måte å finne ny og gammel musikk på er å høre på DJ miks som andre DJ
+-er har lagt ut, typisk på Mixcloud.com og Soundcloud.com. Det er lurt å undersø
+ke om miksen man hører på først og fremst har en spilleliste som er lett tilgjen
+gelig og som helst ikke krever at du følger, kommenterer, eller lignende, for å
+kunne se navn på låtene brukt i DJ-miksen. Man kan miste tid på slikt, som man e
+llers kunne brukt på å høre på andre miks som har dette lett tilgjengelig uten h
+andling. Når man har spillelisten, og finner relevante låter der som passer til
+din stil, kan man søke dem opp i Beatport, Soundcloud, Youtube, Spotify, eller a
+ndre steder der du strømmer, kjøper og organiserer dine spillelister.
+Finn lignende artister
+Du kan få forslag til lignende artister ved å søke i music-map.com. Søker man et
+ter, for eksempel, artisten Purple Disco Machine, vil artistnavnet vises midt på
+ skjermen, og det som befinner seg rundt artisten er de artistene som ligner mes
+t på denne artisten. Her finner man blant annet artistene Tensnake og Crazy P, o
+g trykker man på et av dem også så finner man artister som ligner på dem.
+Skjermbilde av Music-map.com
+Strømming er det nye
+Når du har en ønskeliste på låter du ønsker i dine DJ-spillelister, er det neste
+ steget å strømme, kjøpe, eller laste ned musikken gratis. Det er mulig å finne
+gratis musikk på Soundcloud, som er tilgjengelig for alle, men disse har ofte la
+v kvalitet og ujevn lydnivå, og derfor er ikke anbefalt å brukes. Jeg anbefaler
+heller å strømme eller kjøpe enkeltlåter på Beatport, Soundcloud, iTunes, Amazon
+, Traxsource, der man får høy kvalitet og jevnt lydnivå. Blant disse er strømmin
+g i dag kun mulig med Beatport, Tidal og Soundcloud, og disse er kompatible samm
+en med Pioneer- og Serato-DJ-utstyr, og programmer som Rekordbox og Serato.
+Å finne musikk handler også om å finne en stil mens man leter
+Det er helt vanlig, og muligens forventet også, at sjangre endrer seg over tid,
+og derfor er det også sannsynlig at ens foretrukne sjangre - og artister - blir
+litt eller en del annerledes i fremtiden, noe som tvinger oss til å tenke nytt o
+g finne ny stil som DJ. Akustiske eller tradisjonelle sjangre, som rock, klassis
+k, jazz, for å ta noen eksempler, endrer seg ikke så raskt sammenlignet med elek
+tronisk musikk. Om man er en DJ som spiller de klassiske/tradisjonelle sjangrene
+ kan man jo si at det er en fordel, for da er det ingen hastverk med å fornye sp
+illestilen og spillelistene.
+For å utforske sjangre og undersjangre kan du sjekke ut music.ishkur.com, som er
+ en nettside med et interaktivt kart hvor det er mulig å trykke og høre på sjang
+re. Finner man en sjanger man kunne likt å sett nærmere på, kan den søkes opp i
+en søkemotor med søkefrasene “best (sjangeren man har funnet) music blogs and we
+bsites”. Når man har funnet artister som man kanskje kan like, kan man bruke mus
+ic-map.com til å finne lignende artister.
+Er du nybegynner? Se våre kurs i “Bli en DJ” for å lære grunnleggende DJ-ing.
+Kilder:
+https://www.digitaldjtips.com/2011/06/7-ways-to-find-great-music-online/
+Etter at du har anskaffet musikk, gjenstår det å importere de nye låtene i en mi
+nnepenn, eller datamaskin. Da anbefaler jeg på det sterkeste å skaffe deg Corsai
+r Survivor minnepennen, som har plass til 32 GB med musikk, og som tåler å falle
+ på bakken, slik at musikken din blir tatt vare på.
+Forbedret i chatgpt
+Hvordan finne DJ-musikk?
+Som DJ er man avhengig av en stor og variert musikkbank – enten man har en tydel
+ig nisje, eller spiller «litt av alt» som allround-DJ. I dette innlegget går vi
+gjennom hvor man kan lete, hva man bør se etter, og hvordan man kan bygge spille
+lister som både passer til din stil og som fungerer til mange ulike anledninger.
+Blogg – følg de som har samme smak som deg
+Det finnes mange som hører på samme type musikk som deg – og mange av dem skrive
+r om den. Derfor er musikkblogger en gullgruve når du skal finne nye låter.
+Bruk søkemotorer (for eksempel Google) og søk etter sjangeren du liker, kombiner
+t med ordet «blogg». Et enkelt søk kan se slik ut:
+techno + blogg
+En annen effektiv metode er å søke på engelsk etter anbefalte blogger og nettsid
+er:
+best (sjangernavn) music blogs and websites
+ For eksempel:
+best techno music blogs and websites
+Når du har funnet noen nettsider og blogger som treffer smaken din, kan du lagre
+ dem og sjekke dem jevnlig. Da har du alltid et sted å gå når du vil oppdatere s
+pillelisten din.
+Hør på DJ-mikser med spilleliste
+En av de mest populære måtene å oppdage ny musikk på, er å høre på DJ-mikser som
+ andre allerede har lagt ut, for eksempel på Mixcloud.com og SoundCloud.com.
+For å spare tid er det lurt å velge mikser som:
+Har spilleliste (tracklist) lett tilgjengelig
+Ikke krever at du følger, kommenterer eller gjør andre handlinger for å se låtti
+tlene
+Da slipper du å bruke unødvendig tid på «unlock»-løsninger og kan heller fokuser
+e på å høre på flere mikser og plukke ut låter som passer til stilen din.
+Når du har funnet låter du liker i en miks, kan du søke dem opp på for eksempel
+Beatport, SoundCloud, YouTube, Spotify eller andre tjenester der du strømmer, kj
+øper og organiserer musikken din.
+Finn lignende artister
+Når du har funnet én artist du liker, kan du bruke den som utgangspunkt for å op
+pdage flere. En nyttig tjeneste er music-map.com. Der skriver du inn navnet på e
+n artist, for eksempel Purple Disco Machine. Artistnavnet dukker opp i midten av
+ skjermen, og rundt det ser du andre artister som ligner mest, der de mest ligne
+nde artistene vil stå nærmest den artisten man har søkt på. Klikker du for eksem
+pel på Tensnake eller Crazy P, får du opp nye «kart» med flere lignende artister
+.
+På den måten kan du ganske raskt bygge en liste med artister som beveger seg inn
+enfor samme stil, men som gir deg variasjon i settene dine.
+Strømming er det nye – men kvalitet er viktig
+ Når du har en ønskeliste med låter du vil ha i DJ-spillelistene dine, må du bes
+temme deg for hvordan du vil skaffe musikken: strømme, kjøpe eller (i noen tilfe
+ller) laste ned gratis.
+Det finnes gratis nedlastninger på for eksempel SoundCloud, men disse har ofte:
+Lavere lydkvalitet
+Ujevnt lydnivå (forskjellig volum fra låt til låt)
+Derfor er det sjelden det beste valget for seriøs DJ-bruk.
+Jeg anbefaler heller å strømme eller kjøpe enkeltlåter fra steder som Beatport,
+SoundCloud, iTunes, Amazon og Traxsource. Her får du:
+Høyere lydkvalitet
+Mer jevnt lydnivå mellom låtene
+Per i dag er strømming spesielt godt integrert via Beatport, Tidal og SoundCloud
+. Disse tjenestene fungerer sammen med DJ-utstyr og programvare som blant annet
+Pioneer-spillere, Rekordbox og Serato.
+Å finne musikk er også å finne din stil
+ Musikksjangre utvikler seg hele tiden, og det gjør smaken vår også. Det er helt
+ normalt – og egentlig ganske sunt – at du som DJ endrer preferanser etter hvert
+.
+Elektroniske sjangre utvikler seg gjerne raskere enn mer tradisjonelle sjangre s
+om rock, klassisk og jazz. Spiller du mye elektronisk musikk, må du derfor være
+forberedt på å fornye både stil og spillelister oftere. Spiller du mer «tidsløse
+» sjangre, kan det derimot føles mindre stressende, fordi musikken holder seg ak
+tuell lenger.
+For å utforske sjangre og undersjangre kan du bruke nettsiden music.ishkur.com,
+som er et interaktivt «kart» over elektronisk musikk. Her kan du:
+Klikke deg gjennom sjangre og undersjangre
+Høre korte eksempler
+Få ideer til hva du vil utforske videre
+Når du finner en sjanger du liker, kan du søke den opp i en søkemotor med frasen
+:
+best (sjangernavn) music blogs and websites
+Deretter kan du:
+Finne artister innenfor sjangeren
+Bruke music-map.com til å finne lignende artister
+Bygge deg en personlig stil basert på funnene dine
+Er du nybegynner?
+ Er du helt i startgropen som DJ, kan det være lurt å kombinere jakten på ny mus
+ikk med grunnleggende opplæring i teknikk og struktur. Sjekk gjerne ut våre kurs
+ i «Bli en DJ» for å lære det mest nødvendige innen DJ-ing, samtidig som du bygg
+er spillelisten din.
+Kilder:
+ https://www.digitaldjtips.com/2011/06/7-ways-to-find-great-music-online/
+Når musikken er på plass – ta vare på den
+ Når du har anskaffet musikken du trenger, gjenstår det å lagre den trygt – ente
+n du bruker minnepenn eller bærbar datamaskin.
+Til minnepenn anbefaler jeg på det sterkeste Corsair Survivor, som for eksempel
+i 32 GB-versjon gir deg:
+God plass til spillelistene dine
+Solid, robust kapsling som tåler å falle i gulvet
+Da reduserer du risikoen for at utstyret ryker rett før en spillejobb – og musik
+ken din er litt bedre sikret.
+
+----------------------------------------
+
+========================================
+FILE: Hvordan leser man dansegulvet.docx
+========================================
+Hvordan leser man dansegulvet?
+En viktig del av DJ-yrket er å kunne lese dansegulvet. D slik at gjester blir fo
+rnøyde med musikken.
+Ikke let så lenge etter en låt
+For å kunne tilpasse musikken til publikum må man først og fremst sørge for å ha
+ en stor samling av låter - med ulike sjangre, rytmer og energinivåer - som kan
+appellere til det publikummet som kommer på dansegulvet. Som allround-DJ har man
+ naturligvis et bredt publikum, noe som gjør at man ikke helt vet hvem og hvor m
+ange som kommer på dansegulvet. Skifting av sjanger, energinivå og rytmer er noe
+ som ofte skjer og som man må kunne gjøre ofte. Er man en DJ som spiller en spes
+ifikk sjanger, og gjør det på en scene som også kun har den type musikk, må en å
+penbart ikke skifte sjanger, noe som gjør det mye lettere å være DJ. Uansett om
+man er allround-DJ eller ikke, er det like viktig at musikksamlingen er godt org
+anisert, i mapper og undermapper, slik at man bruker minst mulig tid på å lete e
+tter spesifikke låter med spesifikke karakterer på spillejobber. Det gir mer tid
+ til å lese dansegulvet.
+Start forsiktig
+Først og fremst, spill låter med lav bpm (tempo) og bygg opp til et høyere tempo
+ utover spillingen. Dette er viktig om man er den første DJ-en som spiller den d
+agen, og som derfor må bygge opp energien (stemningen) gradvis slik at publikumm
+et lettere kan komme i stemning og danse til de låtene som har høy energi i seg.
+ Om man tar over for en warm-up DJ er publikumet forhåpentligvis allerede varmet
+ opp, men pass på å fortsette den gradvise økningen av tempo som warm-up DJ-en h
+ar jobbet så lenge med, slik at stemningen på dansegulvet ikke går ned. Om man g
+år fra 123 til 130 BPM på kort tid, som et eksempel, og i tillegg skifter rytme
+eller sjanger, så vil publikum føle usikkerhet og potensielt forlate dansegulvet
+. Når man etterhvert har kommet til et høyt energinivå kan man tenke på å senke
+tempoet, for å ikke slite ut publikum - selv om alle er i god stemning og danser
+.
+Tenk positivt
+DJ-ens tanker og energi kan overføres til publikumet, og det påvirker publikums
+humør og lyst til å danse. Ta det derfor med ro om du ser at ingen danser. Det k
+an være et tegn på at publikum ikke er klar for sjangeren, tempoet eller rytmen
+som presenteres, og derfor må tempoet senkes og eventuelt bringes det tilbake på
+ et senere tidspunkt. DJ som føler seg usikker fører raskt til bytting av sjange
+r, tempo eller rytme, og det kan oppleves som uprofesjonelt. Usikkerheten blir v
+eldig lett overført til publikumet, og slik føler de seg også usikre. Holder man
+ seg rolig vil man kunne tenke klart og derfor ta bedre valg. Det gode valget vi
+l da være å fortsette på samme sjanger og spille tre låter der, slik at man kjøp
+er tid til å tenke på det neste trekket.
+Spill ønskelåter
+Ta gjerne imot ønskelåter, men la det ikke gå utover planlagte låter og energini
+våer. Man skal tenke på å gradvis øke tempo, og gradvis senke det, men om ønskel
+åten spilles i feil energinivå så vil det forstyrre danseflyten på dansegulvet.
+For eksempel, en låt med høy energi vil ikke passe godt med en låt med lav energ
+i. Å ta imot ønskelåter vil gjøre den som spør fornøyd, men ofte langt ifra alle
+ fornøyd, men det kan gi en pekepinn på hvilken retning man kan gå i når det kom
+mer til musikkvalg.
+Spill så ofte som mulig
+Som nybegynner bør man spille ofte og regelmessig, om man har mulighet til det,
+slik at man lærer hva som fungerer og ikke. Det anbefales for alle DJ-er i alle
+nivåer å spille inn den musikken man har spilt på spillejobben, for da kan man i
+ etterkant høre på miksen og notere ned hva som kunne vært bedre.
+
+----------------------------------------
+
+========================================
+FILE: Hvordan organisere musikk som DJ.docx
+========================================
+Hvordan organisere musikk som DJ?
+Det finnes mange måter å organisere musikk på; den beste måten er den som gir de
+g en rask og enkel oversikt over samlingen din. Her viser vi deg hvordan du kan
+organisere musikk gjennom mapper og stjernemerker, slik at du får en god oversik
+t over hva du har av musikk og hva deres egenskaper er.
+Organiser musikk etter energinivå/Hvilken energinivå har musikksamlingen din?:
+(Visste du at?) Alle låter har en viss form for stemning i seg, eller energinivå
+?. Dette kan du benytte deg av til å organisere musikk i for eksempel tre katego
+rier (lav, middels, og høy energinivå). Navngi mappene med “lav energi”, som har
+ en samling av rolige oppvarmings låter, som spilles tidlig, og “middels energi”
+ for å forberede (eller “pirke”) dansegulvet til den tredje mappen, som heter “h
+øy energi”, som har låter med en høy stemning og tempo. I den tredje mappen ligg
+er det meste av musikksamlingen din, fordi det er denne samlingen du sannsynligv
+is kommer til å spille mest fra. En annen måte å organisere DJ musikken din på e
+r ved å bruke stjernemerker.
+Stjernene kan også hjelpe deg til å organisere etter hvilken “stemning” låtene e
+r i. Dette kan du selv prøve å høre hjemme under forberedelsen.
+Sjernene hjelper deg til å organisere etter hvilken stemning låtene er i. Du kan
+ markere låtene underveis, eller før du starter å mikse.
+men det beste er å få en praktisk erfaring ved å teste musikken under en spillej
+obb, eller snakke med en DJ som du kjenner som ofte spiller ute. Én stjerne, ell
+er “Lav energi”, kan tilhøre rolige låter, mens 5 stjerner, eller “Høy energi”,
+kan tilhøre låter med mye energi og høyt tempo.
+Har du en plan B?/Ha alltid en plan B/Ha en plan B:
+Ha alltid en mappe med kjente låter som alle kan synge og danse til. Om det begy
+nner å bli stille på dansegulvet, og ingen av låtene du spiller gir den reaksjon
+en du ønsker, så har du alltid en plan B. Denne samlingen bør inneholde flere lå
+ter tilpasset for DJ-er, slik at har nok å velge mellom under spilling, fordi de
+t sannsynligvis blir denne mappen du kommer du å benytte deg av for resten av kv
+elden (eller dagen). Det er også smart å kopiere hele musikksamlingen din slik a
+t du har en ekstra kopi, i tilfelle harddisken på PC-en/Mac-en eller minnepinnen
+ du bruker for å spille fra, ikke virker lenger.
+Du kan bruke DJ programmer, som Rekordbox, til å organisere og forberede låter s
+lik du ønsker, før du begynner å mikse.
+Hvordan organiserer du DJ musikk? Kommenter gjerne under.
+Kilder:
+https://www.digitaldjtips.com/2015/06/first-day-rekordbox/
+
+----------------------------------------
+
+========================================
+FILE: Tre tips til din DJ mix.docx
+========================================
+3 tips til din DJ miks
+En DJ miks er en flott måte å vise andre hvordan du er som DJ. Her viser jeg deg
+ tre tips til hva som er viktig å tenke på, samt hvilket DJ program du kan bruke
+, før du begynner å spille inn egen DJ-miks.
+Hvem spiller du til?
+DJ-miks er veien din til spillejobben du ønsker deg. Undersøk hva utestedet - en
+ten det er en bar, klubb, festival, eller kanskje verten på brylluppet - ønsker
+fra deg. Besøk stedet og observer nøye hvilken sjanger og stil som presenteres a
+v DJ-en den dagen. Legg for eksempel merke til hva publikumet danser mest til, o
+g hvordan DJ-ing oppfører seg når publikumet er klare for annen musikk. Kanskje
+du har lyst til å spille musikk for salsadansere? Da trenger du åpenbart salsamu
+sikk, men for å nå denne målgruppen trenger en låter med variert tempo, slik at
+publikum kan danse men også slappe av i ny og ne. Dette er også overførbart i el
+ektronisk dansemusikk, rnb, afrobeat, og i flere andre sjangre.
+DJ miks er en fortelling
+Tenk strategisk hvordan du ønsker at DJ-miksen din skal oppleves og oppfattes. S
+tarter den rolig, og bygger opp gradvis i tempo? Eller ønsker du å starte med hø
+yt tempo, for å så gå ned?. En DJ-miks varer gjerne litt lenge, eksempelvis mell
+om 15 minutter til 2 timer, derfor er det viktig at miksen er interessant og spe
+nnende å høre på, selv når det har gått 1 eller 2 timer. Tenk på å inkludere pau
+ser, gjerne etter hver tredje låt, slik at miksen ikke oppleves som slitsom. Man
+ kan eksperimentere med lydnivået - eksempelvis øke lyden jo nærmere miksen nærm
+er seg slutten - gradvis gå opp eller ned i tempo (bpm), og gradvis veksle mello
+m ulike sjangre.
+Du har musikken og fortellingen klar
+Nå gjenstår det å åpne en foretrukket DJ program, stille inn riktig lydnivå, og
+begynne innspilling. Du kan også bruke en profesjonell lydopptaker  - for eksemp
+el Zoom F1 LP - for å spille inn, eller bruke en app på din telefon. Det lettest
+e er å bruke DJ program, slik som Rekordbox, Serato, Virtual DJ, Traktor DJ, med
+ mer.
+Kilder:
+https://djtechtools.com/2015/07/30/how-to-craft-a-dj-mix-10-tips-for-success/
+
+----------------------------------------
+
+dejanzivanovic@Dejan-sin-MacBook-Air lydbar i vs % 

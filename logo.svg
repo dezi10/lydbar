@@ -1,0 +1,5 @@
+<svg viewBox="0 0 380 120" xmlns="http://www.w3.org/2000/svg">
+  <!-- Lilla bølge logo -->
+  <path d="M 40 90 Q 60 30, 100 50 Q 140 70, 180 60 Q 220 50, 260 80 Q 300 110, 340 80" 
+        fill="none" stroke="#667eea" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
