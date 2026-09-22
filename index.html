@@ -106,7 +106,11 @@
             
             // Reset form and display
             document.getElementById('bookingForm').reset();
-            document.getElementById('bookingSubmitBtn').disabled = true;
+            const submitBtn = document.getElementById('bookingSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.style.background = '#cccccc';
+            submitBtn.style.cursor = 'not-allowed';
+            submitBtn.style.boxShadow = '0 4px 12px rgba(200, 200, 200, 0.3)';
             document.getElementById('bookingDateTimeDisplay').textContent = 'Ikke valgt';
             
             // Reset booking variables
@@ -439,6 +443,7 @@
 
         function updateBookingDisplay() {
             const isPrivatkurs = currentBookingCourseName === 'Privatkurs for nybegynnere - Fysisk';
+            const submitBtn = document.getElementById('bookingSubmitBtn');
             
             if (isPrivatkurs) {
                 // Privatkurs: check if 5 day+time pairs selected
@@ -450,11 +455,17 @@
                         return `${dayStr} kl. ${slot.time}-${slot.endTime}`;
                     }).join(', ');
                     document.getElementById('bookingDateTimeDisplay').textContent = `${dateTimeStrings} (5 dager)`;
-                    document.getElementById('bookingSubmitBtn').disabled = false;
+                    submitBtn.disabled = false;
+                    submitBtn.style.background = '#5B4B9D';
+                    submitBtn.style.cursor = 'pointer';
+                    submitBtn.style.boxShadow = '0 4px 12px rgba(91, 75, 157, 0.3)';
                 } else {
                     const count = selectedBookingDates.length;
                     document.getElementById('bookingDateTimeDisplay').textContent = `Valgt ${count} av 5 dager`;
-                    document.getElementById('bookingSubmitBtn').disabled = true;
+                    submitBtn.disabled = true;
+                    submitBtn.style.background = '#cccccc';
+                    submitBtn.style.cursor = 'not-allowed';
+                    submitBtn.style.boxShadow = '0 4px 12px rgba(200, 200, 200, 0.3)';
                 }
             } else if (selectedBookingDate && selectedBookingTime) {
                 // Other courses: single date
@@ -463,10 +474,16 @@
                 const dateStr = date.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
                 const endTime = selectedBookingEndTime || getEndTime(selectedBookingTime);
                 document.getElementById('bookingDateTimeDisplay').textContent = `${dateStr} kl. ${selectedBookingTime} - ${endTime}`;
-                document.getElementById('bookingSubmitBtn').disabled = false;
+                submitBtn.disabled = false;
+                submitBtn.style.background = '#5B4B9D';
+                submitBtn.style.cursor = 'pointer';
+                submitBtn.style.boxShadow = '0 4px 12px rgba(91, 75, 157, 0.3)';
             } else {
                 document.getElementById('bookingDateTimeDisplay').textContent = 'Ikke valgt';
-                document.getElementById('bookingSubmitBtn').disabled = true;
+                submitBtn.disabled = true;
+                submitBtn.style.background = '#cccccc';
+                submitBtn.style.cursor = 'not-allowed';
+                submitBtn.style.boxShadow = '0 4px 12px rgba(200, 200, 200, 0.3)';
             }
         }
 
@@ -1431,6 +1448,16 @@
         .confirmation-modal-content button:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(91, 75, 157, 0.4);
+        }
+
+        #bookingSubmitBtn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            box-shadow: 0 4px 12px rgba(200, 200, 200, 0.3);
+        }
+
+        #bookingSubmitBtn:disabled:hover {
+            transform: none;
         }
     </style>
 </head>
