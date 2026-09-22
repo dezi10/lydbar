@@ -280,11 +280,17 @@
                 // Show time selection if a day was selected
                 if (currentSelectedDay) {
                     const timeLabel = document.createElement('div');
-                    timeLabel.style.cssText = 'font-weight: 700; color: #5B4B9D; font-size: 14px; margin-bottom: 8px;';
+                    timeLabel.style.cssText = 'font-weight: 700; color: #5B4B9D; font-size: 14px; margin-bottom: 8px; grid-column: 1 / -1;';
                     timeLabel.textContent = `Dag ${dayNum}/5 - Velg tid:`;
                     timesContainer.appendChild(timeLabel);
-                    
-                    availableTimes.forEach(time => {
+
+                    // Show only the time relevant to the selected day's weekday
+                    const [sy, sm, sd] = currentSelectedDay.split('-').map(Number);
+                    const selectedDOW = new Date(sy, sm - 1, sd).getDay();
+                    const dayTimeMap = { 1: '17:45', 5: '16:15' }; // Monday: 17:45, Friday: 16:15
+                    const filteredTimes = dayTimeMap[selectedDOW] ? [dayTimeMap[selectedDOW]] : availableTimes;
+
+                    filteredTimes.forEach(time => {
                         const button = document.createElement('button');
                         button.type = 'button';
                         const endTime = timeEndTimes[time];
