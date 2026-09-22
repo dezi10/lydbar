@@ -1958,17 +1958,14 @@
                                 stripeCheckoutUrl = 'https://buy.stripe.com/4gMfZg7lH6P6a7D3eL5kk0k';
                             }
                             
-                            setTimeout(() => {
-                                window.location.href = stripeCheckoutUrl;
-                            }, 2000);
-                            
                             closeBooking();
                             document.getElementById('bookingForm').reset();
+                            window.location.href = stripeCheckoutUrl;
                         } catch (error) {
                             console.error('Booking error:', error);
                             alert('Det oppstod en feil. Vennligst prøv igjen eller kontakt oss direkte.');
                         }
-                    " style="padding: 16px 48px; background: #5B4B9D; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 16px; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(91, 75, 157, 0.3);" disabled>Bekreft booking</button>
+                    " style="padding: 16px 48px; background: #5B4B9D; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 16px; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(91, 75, 157, 0.3);">Bekreft booking</button>
                 </div>
             </form>
         </div>
