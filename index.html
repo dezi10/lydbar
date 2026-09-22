@@ -214,6 +214,10 @@
             
             // Generate calendar with available days
             const availableDates = [];
+            const isPrivatkurs = courseName === 'Privatkurs for nybegynnere - Fysisk';
+            const twoWeeksFromNow = new Date();
+            twoWeeksFromNow.setDate(twoWeeksFromNow.getDate() + 14);
+            
             for (let i = 0; i <= 84 && availableDates.length < 25; i++) {
                 const date = new Date(startDate);
                 date.setDate(date.getDate() + i);
@@ -223,10 +227,10 @@
                 if (blockedStartDate && blockedEndDate) {
                     if (date >= blockedStartDate && date <= blockedEndDate) continue;
                 }
+                // Privatkurs: minimum 2 weeks advance booking
+                if (isPrivatkurs && date < twoWeeksFromNow) continue;
                 availableDates.push(new Date(date));
             }
-            
-            const isPrivatkurs = courseName === 'Privatkurs for nybegynnere - Fysisk';
             
             // For Privatkurs: Create step-based interface
             if (isPrivatkurs) {
