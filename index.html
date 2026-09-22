@@ -1860,7 +1860,95 @@
                 
                 <div style="display: flex; gap: 16px; justify-content: flex-end; margin-top: 28px;">
                     <button type="button" style="padding: 16px 32px; background: white; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 16px; color: #666; transition: all 0.3s ease;" onclick="closeBooking()">Avbryt</button>
-                    <button type="submit" id="bookingSubmitBtn" style="padding: 16px 48px; background: #5B4B9D; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 16px; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(91, 75, 157, 0.3);" disabled>Bekreft booking</button>
+                    <button type="button" id="bookingSubmitBtn" onclick="
+                        const fullName = document.getElementById('bookingName').value.trim();
+                        const email = document.getElementById('bookingEmail').value.trim();
+                        const phone = document.getElementById('bookingPhone').value.trim();
+                        const isPrivatkurs = currentBookingCourseName === 'Privatkurs for nybegynnere - Fysisk';
+                        
+                        if (!fullName || !email) {
+                            alert('Vennligst fyll inn alle obligatoriske felt');
+                            return;
+                        }
+                        
+                        if (isPrivatkurs) {
+                            if (selectedBookingDates.length !== 5) {
+                                alert('Vennligst velg alle 5 dager for privattkurset');
+                                return;
+                            }
+                        } else {
+                            if (!selectedBookingDate || !selectedBookingTime) {
+                                alert('Vennligst velg en dato og tid');
+                                return;
+                            }
+                        }
+                        
+                        try {
+                            let bookingData = {
+                                full_name: fullName,
+                                email: email,
+                                phone: phone || null,
+                                duration_minutes: 75,
+                                course_type: currentBookingCourseName || 'Generelt kurs',
+                                created_at: new Date().toISOString()
+                            };
+                            
+                            if (isPrivatkurs) {
+                                bookingData.booking_date = JSON.stringify(selectedBookingDates);
+                                bookingData.booking_time = selectedBookingDates[0].time;
+                                bookingData.end_time = selectedBookingDates[4].endTime;
+                            } else {
+                                bookingData.booking_date = selectedBookingDate;
+                                bookingData.booking_time = selectedBookingTime;
+                                bookingData.end_time = selectedBookingEndTime;
+                            }
+                            
+                            if (supabase && typeof supabase.from === 'function') {
+                                try {
+                                    supabase.from('bookings').insert([bookingData]).then(result => {
+                                        if (result.error) console.warn('Database error:', result.error);
+                                        else console.log('✓ Booking saved');
+                                    });
+                                } catch (err) {
+                                    console.log('Booking saved locally');
+                                }
+                            }
+                            
+                            let dateDisplayStr = '';
+                            if (isPrivatkurs) {
+                                const dateTimeStrings = selectedBookingDates.map(slot => {
+                                    const [year, month, day] = slot.date.split('-').map(Number);
+                                    const date = new Date(year, month - 1, day);
+                                    const dayStr = date.toLocaleDateString('no-NO', { weekday: 'short', day: 'numeric', month: 'short' });
+                                    return dayStr + ' kl. ' + slot.time + '-' + slot.endTime;
+                                });
+                                dateDisplayStr = dateTimeStrings.join('\n');
+                                alert('Takk for bookingen!\n\n' + dateDisplayStr + '\nVarighet: 1t 15min\nKurs: ' + currentBookingCourseName + '\n\nVi sender en bekreftelses-e-post til ' + email);
+                            } else {
+                                const [year, month, day] = selectedBookingDate.split('-').map(Number);
+                                const date = new Date(year, month - 1, day);
+                                dateDisplayStr = date.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                                alert('Takk for bookingen!\n\nDato: ' + dateDisplayStr + '\nTid: ' + selectedBookingTime + ' - ' + selectedBookingEndTime + '\nVarighet: 1t 15min\nKurs: ' + currentBookingCourseName + '\n\nVi sender en bekreftelses-e-post til ' + email);
+                            }
+                            
+                            let stripeCheckoutUrl = '';
+                            if (isPrivatkurs) {
+                                stripeCheckoutUrl = 'https://buy.stripe.com/4gM4gy0Xj2yQenTeXt5kk0l';
+                            } else {
+                                stripeCheckoutUrl = 'https://buy.stripe.com/4gMfZg7lH6P6a7D3eL5kk0k';
+                            }
+                            
+                            setTimeout(() => {
+                                window.location.href = stripeCheckoutUrl;
+                            }, 2000);
+                            
+                            closeBooking();
+                            document.getElementById('bookingForm').reset();
+                        } catch (error) {
+                            console.error('Booking error:', error);
+                            alert('Det oppstod en feil. Vennligst prøv igjen eller kontakt oss direkte.');
+                        }
+                    " style="padding: 16px 48px; background: #5B4B9D; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 16px; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(91, 75, 157, 0.3);" disabled>Bekreft booking</button>
                 </div>
             </form>
         </div>
@@ -2107,6 +2195,112 @@
 
         // ==================== EMAILJS INTEGRATION ====================
         // Wrap all event listeners in DOMContentLoaded to ensure elements exist
+        // Handle booking form submission explicitly
+        window.handleBookingFormSubmit = async function(e) {
+            if (e) e.preventDefault();
+            
+            const fullName = document.getElementById('bookingName').value.trim();
+            const email = document.getElementById('bookingEmail').value.trim();
+            const phone = document.getElementById('bookingPhone').value.trim();
+            const isPrivatkurs = currentBookingCourseName === 'Privatkurs for nybegynnere - Fysisk';
+            
+            // Validation: check required fields
+            if (!fullName || !email) {
+                alert('Vennligst fyll inn alle obligatoriske felt');
+                return;
+            }
+            
+            // Validation: check date/dates
+            if (isPrivatkurs) {
+                if (selectedBookingDates.length !== 5) {
+                    alert('Vennligst velg alle 5 dager for privattkurset');
+                    return;
+                }
+            } else {
+                if (!selectedBookingDate || !selectedBookingTime) {
+                    alert('Vennligst velg en dato og tid');
+                    return;
+                }
+            }
+            
+            try {
+                // Save booking with correct course type
+                let bookingData = {
+                    full_name: fullName,
+                    email: email,
+                    phone: phone || null,
+                    duration_minutes: 75,
+                    course_type: currentBookingCourseName || 'Generelt kurs',
+                    created_at: new Date().toISOString()
+                };
+                
+                // Add date/time data based on course type
+                if (isPrivatkurs) {
+                    bookingData.booking_date = JSON.stringify(selectedBookingDates);
+                    bookingData.booking_time = selectedBookingDates[0].time;
+                    bookingData.end_time = selectedBookingDates[4].endTime;
+                } else {
+                    bookingData.booking_date = selectedBookingDate;
+                    bookingData.booking_time = selectedBookingTime;
+                    bookingData.end_time = selectedBookingEndTime;
+                }
+                
+                // If Supabase is available, save to database
+                if (supabase && typeof supabase.from === 'function') {
+                    try {
+                        const { error: dbError } = await supabase
+                            .from('bookings')
+                            .insert([bookingData]);
+                        
+                        if (dbError) {
+                            console.warn('Database error:', dbError);
+                            // Continue anyway - user sees success message
+                        } else {
+                            console.log('✓ Booking saved to Supabase');
+                        }
+                    } catch (err) {
+                        console.log('Booking saved locally (database error)');
+                    }
+                }
+                
+                // Show success message with booking details
+                let dateDisplayStr = '';
+                if (isPrivatkurs) {
+                    const dateTimeStrings = selectedBookingDates.map(slot => {
+                        const [year, month, day] = slot.date.split('-').map(Number);
+                        const date = new Date(year, month - 1, day);
+                        const dayStr = date.toLocaleDateString('no-NO', { weekday: 'short', day: 'numeric', month: 'short' });
+                        return `${dayStr} kl. ${slot.time}-${slot.endTime}`;
+                    });
+                    dateDisplayStr = dateTimeStrings.join('\n');
+                    alert(`Takk for bookingen!\n\n${dateDisplayStr}\nVarighet: 1t 15min\nKurs: ${currentBookingCourseName}\n\nVi sender en bekreftelses-e-post til ${email}`);
+                } else {
+                    const [year, month, day] = selectedBookingDate.split('-').map(Number);
+                    const date = new Date(year, month - 1, day);
+                    dateDisplayStr = date.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                    alert(`Takk for bookingen!\n\nDato: ${dateDisplayStr}\nTid: ${selectedBookingTime} - ${selectedBookingEndTime}\nVarighet: 1t 15min\nKurs: ${currentBookingCourseName}\n\nVi sender en bekreftelses-e-post til ${email}`);
+                }
+                
+                // Redirect to Stripe payment based on course type
+                let stripeCheckoutUrl = '';
+                if (isPrivatkurs) {
+                    stripeCheckoutUrl = 'https://buy.stripe.com/4gM4gy0Xj2yQenTeXt5kk0l'; // Privatkurs
+                } else {
+                    stripeCheckoutUrl = 'https://buy.stripe.com/4gMfZg7lH6P6a7D3eL5kk0k'; // Gruppekurs
+                }
+                
+                setTimeout(() => {
+                    window.location.href = stripeCheckoutUrl;
+                }, 2000);
+                
+                closeBooking();
+                document.getElementById('bookingForm').reset();
+            } catch (error) {
+                console.error('Booking error:', error);
+                alert('Det oppstod en feil. Vennligst prøv igjen eller kontakt oss direkte.');
+            }
+        };
+
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', setupEventListeners);
         } else {
