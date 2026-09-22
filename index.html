@@ -128,6 +128,17 @@
             document.body.style.overflow = 'auto';
         }
 
+        function openConfirmation(message) {
+            document.getElementById('confirmationText').textContent = message;
+            document.getElementById('confirmationModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeConfirmation() {
+            document.getElementById('confirmationModal').classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
         // Global variables for booking
         let selectedBookingDate = null;
         let selectedBookingTime = null;
@@ -1354,6 +1365,69 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Confirmation Modal */
+        .confirmation-modal {
+            display: none;
+            position: fixed;
+            z-index: 3000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(15, 15, 30, 0.6);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .confirmation-modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .confirmation-modal-content {
+            background-color: white;
+            padding: 56px;
+            border-radius: 16px;
+            max-width: 600px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(15, 15, 30, 0.2);
+            animation: slideUp 0.3s ease;
+            text-align: center;
+        }
+
+        .confirmation-modal-content h2 {
+            margin-top: 0;
+            margin-bottom: 24px;
+            color: var(--primary);
+            font-size: 28px;
+        }
+
+        .confirmation-modal-content .confirmation-text {
+            font-size: 18px;
+            line-height: 1.8;
+            color: var(--text);
+            white-space: pre-line;
+            margin-bottom: 28px;
+        }
+
+        .confirmation-modal-content button {
+            padding: 16px 48px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(91, 75, 157, 0.3);
+        }
+
+        .confirmation-modal-content button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(91, 75, 157, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -1943,12 +2017,14 @@
                                     return dayStr + ' kl. ' + slot.time + '-' + slot.endTime;
                                 });
                                 dateDisplayStr = dateTimeStrings.join('\n');
-                                alert('Takk for bookingen!\n\n' + dateDisplayStr + '\nVarighet: 1t 15min\nKurs: ' + currentBookingCourseName + '\n\nVi sender en bekreftelses-e-post til ' + email);
+                                const confirmMsg = dateDisplayStr + '\n\n1,5 t per kursdag\n\nKurs: ' + currentBookingCourseName + '\n\nVi sender en bekreftelses-e-post til ' + email;
+                                openConfirmation(confirmMsg);
                             } else {
                                 const [year, month, day] = selectedBookingDate.split('-').map(Number);
                                 const date = new Date(year, month - 1, day);
                                 dateDisplayStr = date.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-                                alert('Takk for bookingen!\n\nDato: ' + dateDisplayStr + '\nTid: ' + selectedBookingTime + ' - ' + selectedBookingEndTime + '\nVarighet: 1t 15min\nKurs: ' + currentBookingCourseName + '\n\nVi sender en bekreftelses-e-post til ' + email);
+                                const confirmMsg = 'Dato: ' + dateDisplayStr + '\nTid: ' + selectedBookingTime + ' - ' + selectedBookingEndTime + '\n\n1,5 t per kursdag\n\nKurs: ' + currentBookingCourseName + '\n\nVi sender en bekreftelses-e-post til ' + email;
+                                openConfirmation(confirmMsg);
                             }
                             
                             let stripeCheckoutUrl = '';
@@ -1968,6 +2044,15 @@
                     " style="padding: 16px 48px; background: #5B4B9D; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 16px; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(91, 75, 157, 0.3);">Bekreft booking</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="confirmation-modal">
+        <div class="confirmation-modal-content">
+            <h2>Takk for din booking!</h2>
+            <div class="confirmation-text" id="confirmationText"></div>
+            <button onclick="closeConfirmation()">Lukk</button>
         </div>
     </div>
 
@@ -2290,12 +2375,14 @@
                         return `${dayStr} kl. ${slot.time}-${slot.endTime}`;
                     });
                     dateDisplayStr = dateTimeStrings.join('\n');
-                    alert(`Takk for bookingen!\n\n${dateDisplayStr}\nVarighet: 1t 15min\nKurs: ${currentBookingCourseName}\n\nVi sender en bekreftelses-e-post til ${email}`);
+                    const confirmMsg = `${dateDisplayStr}\n\n1,5 t per kursdag\n\nKurs: ${currentBookingCourseName}\n\nVi sender en bekreftelses-e-post til ${email}`;
+                    openConfirmation(confirmMsg);
                 } else {
                     const [year, month, day] = selectedBookingDate.split('-').map(Number);
                     const date = new Date(year, month - 1, day);
                     dateDisplayStr = date.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-                    alert(`Takk for bookingen!\n\nDato: ${dateDisplayStr}\nTid: ${selectedBookingTime} - ${selectedBookingEndTime}\nVarighet: 1t 15min\nKurs: ${currentBookingCourseName}\n\nVi sender en bekreftelses-e-post til ${email}`);
+                    const confirmMsg = `Dato: ${dateDisplayStr}\nTid: ${selectedBookingTime} - ${selectedBookingEndTime}\n\n1,5 t per kursdag\n\nKurs: ${currentBookingCourseName}\n\nVi sender en bekreftelses-e-post til ${email}`;
+                    openConfirmation(confirmMsg);
                 }
                 
                 // Redirect to Stripe payment based on course type
@@ -2511,12 +2598,14 @@
                         return `${dayStr} kl. ${slot.time}-${slot.endTime}`;
                     });
                     dateDisplayStr = dateTimeStrings.join('\n');
-                    alert(`Takk for bookingen!\n\n${dateDisplayStr}\nVarighet: 1t 15min\nKurs: ${currentBookingCourseName}\n\nVi sender en bekreftelses-e-post til ${email}`);
+                    const confirmMsg = `${dateDisplayStr}\n\n1,5 t per kursdag\n\nKurs: ${currentBookingCourseName}\n\nVi sender en bekreftelses-e-post til ${email}`;
+                    openConfirmation(confirmMsg);
                 } else {
                     const [year, month, day] = selectedBookingDate.split('-').map(Number);
                     const date = new Date(year, month - 1, day);
                     dateDisplayStr = date.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-                    alert(`Takk for bookingen!\n\nDato: ${dateDisplayStr}\nTid: ${selectedBookingTime} - ${selectedBookingEndTime}\nVarighet: 1t 15min\nKurs: ${currentBookingCourseName}\n\nVi sender en bekreftelses-e-post til ${email}`);
+                    const confirmMsg = `Dato: ${dateDisplayStr}\nTid: ${selectedBookingTime} - ${selectedBookingEndTime}\n\n1,5 t per kursdag\n\nKurs: ${currentBookingCourseName}\n\nVi sender en bekreftelses-e-post til ${email}`;
+                    openConfirmation(confirmMsg);
                 }
                 
                 // Redirect to Stripe payment based on course type
