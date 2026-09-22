@@ -2308,8 +2308,14 @@
                     alert(`Takk for bookingen!\n\nDato: ${dateDisplayStr}\nTid: ${selectedBookingTime} - ${selectedBookingEndTime}\nVarighet: 1t 15min\nKurs: ${currentBookingCourseName}\n\nVi sender en bekreftelses-e-post til ${email}`);
                 }
                 
-                // Redirect to Stripe payment
-                const stripeCheckoutUrl = 'https://checkout.stripe.com/pay/cs_live_abc123'; // Replace with actual Stripe link
+                // Redirect to Stripe payment based on course type
+                let stripeCheckoutUrl = '';
+                if (isPrivatkurs) {
+                    stripeCheckoutUrl = 'https://buy.stripe.com/4gM4gy0Xj2yQenTeXt5kk0l'; // Privatkurs
+                } else {
+                    stripeCheckoutUrl = 'https://buy.stripe.com/4gMfZg7lH6P6a7D3eL5kk0k'; // Gruppekurs
+                }
+                
                 setTimeout(() => {
                     window.location.href = stripeCheckoutUrl;
                 }, 2000);
