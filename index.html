@@ -219,6 +219,16 @@
             
             // For Privatkurs: Create step-based interface
             if (isPrivatkurs) {
+                // Stop at 5 – show done state and exit
+                if (selectedBookingDates.length === 5 && !currentSelectedDay) {
+                    calendarContainer.innerHTML = '';
+                    const doneDiv = document.createElement('div');
+                    doneDiv.style.cssText = 'color: #5B4B9D; font-weight: 600; font-size: 14px; padding: 12px 0;';
+                    doneDiv.textContent = 'Alle 5 dager er valgt \u2713';
+                    calendarContainer.appendChild(doneDiv);
+                    return;
+                }
+
                 currentBookingDayIndex = selectedBookingDates.length; // Current slot we're filling (0-4)
                 const dayNum = currentBookingDayIndex + 1;
                 const showTimesSelection = currentSelectedDay !== null; // True if a day was just selected
@@ -245,29 +255,30 @@
                     const day = String(date.getDate()).padStart(2, '0');
                     const dateISO = `${year}-${month}-${day}`;
                     
-                    // Check if this date is already selected in a previous slot
                     const alreadySelected = selectedBookingDates.some(slot => slot.date === dateISO);
-                    
+                    const isCurrentStep = currentSelectedDay === dateISO;
+                    // Disable if used in a previous slot, or if another date was already picked this step
+                    const isDisabled = alreadySelected || (currentSelectedDay !== null && !isCurrentStep);
+
                     button.textContent = dateStr;
                     button.style.cssText = `
                         padding: 10px 8px;
-                        border: 2px solid #ddd;
-                        background: white;
+                        border: 2px solid ${isCurrentStep ? '#5B4B9D' : '#ddd'};
+                        background: ${isCurrentStep ? '#5B4B9D' : (isDisabled ? '#e0e0e0' : 'white')};
                         border-radius: 6px;
-                        cursor: ${alreadySelected ? 'not-allowed' : 'pointer'};
+                        cursor: ${isDisabled ? 'not-allowed' : 'pointer'};
                         font-size: 12px;
                         font-weight: 500;
                         transition: all 0.3s ease;
-                        color: #333;
-                        opacity: ${alreadySelected ? 0.5 : 1};
+                        color: ${isCurrentStep ? 'white' : (isDisabled ? '#999' : '#333')};
                     `;
-                    
-                    if (alreadySelected) {
+
+                    if (isDisabled) {
                         button.disabled = true;
                     } else {
                         button.onclick = () => {
                             currentSelectedDay = dateISO;
-                            initializeBookingCalendar(courseName); // Refresh to show times
+                            initializeBookingCalendar(courseName);
                         };
                     }
                     
@@ -357,13 +368,16 @@
                 
                 button.onclick = () => {
                     document.querySelectorAll('#bookingCalendar button').forEach(b => {
-                        b.style.background = 'white';
-                        b.style.borderColor = '#ddd';
-                        b.style.color = '#333';
+                        b.style.background = '#e0e0e0';
+                        b.style.borderColor = '#ccc';
+                        b.style.color = '#999';
+                        b.style.cursor = 'not-allowed';
+                        b.disabled = true;
                     });
                     button.style.background = '#5B4B9D';
                     button.style.borderColor = '#5B4B9D';
                     button.style.color = 'white';
+                    button.style.cursor = 'default';
                     selectedBookingDate = dateISO;
                     updateBookingDisplay();
                 };
